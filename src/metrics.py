@@ -109,3 +109,30 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
             self.syntactic_correct += sum([1 for res in list_res if res])
         else:
             self.failure_batches += 1
+
+
+class ClassicalMetricComputer(MetricComputer):
+    def __init__(self):
+        self.bleu = evaluate.load("bleu")
+        self.correct_predictions: int = 0
+        self.total: int = 0
+
+    def compute_metrics(self) -> Dict[str, float]:
+        metric_dict = {}
+        bleu_metrics = self.bleu.compute()
+        metric_dict["bleu"] = bleu_metrics["bleu"]
+        metric_dict["accuracy"] = self.correct_predictions / self.total
+        return metric_dict
+
+    def add_to_batch(self, references: List[str], predictions: List[str]) -> None:
+        self.bleu.add_batch(references=references, predictions=predictions)
+        self._accuracy(references,predictions)
+
+    def _accuracy(self, references: List[str], predictions: List[str]):
+        equality = [self._clean(r) == self._clean(p) for r, p in zip(references, predictions)]
+        self.correct_predictions+= len([_ for _ in equality if _])
+        self.total+=len(equality)
+
+    @staticmethod
+    def _clean(assertion: str):
+        return assertion.replace(" ","")
