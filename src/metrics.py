@@ -2,6 +2,8 @@ import abc
 from typing import List, Dict
 
 import evaluate
+import subprocess
+import json
 
 
 class MetricComputer(abc.ABC):
@@ -79,11 +81,28 @@ class AssertionTypeMetricComputer(MetricComputer):
 class SyntacticCorrectnessMetricComputer(MetricComputer):
     def __init__(self):
         self.syntactic_correct: int = 0
+        self.failure_batches: int = 0
         self.total: int = 0
 
     def compute_metrics(self) -> Dict[str, float]:
         return {"syntactic_correct": float(self.syntactic_correct) / float(self.total)}
 
     def add_to_batch(self, references: List[str], predictions: List[str]) -> None:
-        self.syntactic_correct += len(predictions) // 2
+        self._compute_syntactic_correct_predictions(predictions)
         self.total += len(predictions)
+
+    def _compute_syntactic_correct_predictions(self, predictions) -> None:
+        cmd = [
+            "java",
+            "-jar",
+            "libs/assertions.jar",
+            "check",
+            "--codes",
+            str(predictions),
+        ]
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        list_res = json.loads(result.stdout.strip())
+        if len(predictions) == len(list_res):
+            self.syntactic_correct += sum([1 for res in list_res if res])
+        else:
+            self.failure_batches += 1
