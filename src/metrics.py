@@ -85,7 +85,7 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
         self.total: int = 0
 
     def compute_metrics(self) -> Dict[str, float]:
-        return {"syntactic_correct": float(self.syntactic_correct) / float(self.total)}
+        return {"syntactic_correct": float(self.syntactic_correct) / float(self.total), "failure_batches":self.failure_batches}
 
     def add_to_batch(self, references: List[str], predictions: List[str]) -> None:
         self._compute_syntactic_correct_predictions(predictions)
