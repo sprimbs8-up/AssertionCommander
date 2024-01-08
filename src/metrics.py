@@ -103,7 +103,7 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
             "--codes",
             str(predictions),
         ]
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, text=True)
         list_res = json.loads(result.stdout.strip())
         if len(predictions) == len(list_res):
             self.syntactic_correct += sum([1 for res in list_res if res])
