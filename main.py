@@ -1,25 +1,15 @@
 import evaluate
 from src.metrics import AssertionTypeMetricComputer, SyntacticCorrectnessMetricComputer, ClassicalMetricComputer
 
-bleu = evaluate.load("accuracy")
-predictions = [
-    "assertEquals ( result , 2 )",
-    "assertEquals ( result , 2 )",
-    'assertEquals ( "result" , 2 )',
-    'assertTrue ( "result" , 2 , 2)',
-]
-references = [
-    "assertEquals ( result . isEmpty ( ) )",
-    "assertEquals ( result , 2 )",
-    "assertEquals ( result , 2 )",
-    "assertEquals ( result , 2 )",
-]
 
+from itertools import islice
+def process(a,b):
+    print(list(a))
+    print(list(b))
+filename ="evaluation-data/10/atlas/assertLines.txt"
+filename2 ="evaluation-data/10/atlas/testMethods.txt"
+n = 10  # Or whatever chunk size you want
+with open(filename, 'r') as f,  open(filename2, 'r') as g:
+    for a, b in zip(iter(lambda: tuple(islice(f, n)), ()), iter(lambda: tuple(islice(g, n)), ())):
+        process(a,b)
 
-metrics = [ClassicalMetricComputer(), AssertionTypeMetricComputer(), SyntacticCorrectnessMetricComputer()]
-metrics_dict = {}
-for metric in metrics:
-    for pred, ref in zip(predictions, references):
-        metric.add_to_batch(predictions=[pred], references=[ref])
-    metrics_dict.update(metric.compute_metrics())
-print(metrics_dict)
