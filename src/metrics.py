@@ -19,9 +19,11 @@ class MetricComputer(abc.ABC):
 def _extract_assertion_types(assertion: List[str]) -> List[str]:
     return [assert_statement.split()[0] for assert_statement in assertion]
 
+
 class CombinedMetricComputer(MetricComputer):
     def __init__(self, metric_computers: List[MetricComputer]):
         self.metric_computers = metric_computers
+
     def add_to_batch(self, references: List[str], predictions: List[str]) -> None:
         for computer in self.metric_computers:
             computer.add_to_batch(references=references, predictions=predictions)
@@ -31,7 +33,6 @@ class CombinedMetricComputer(MetricComputer):
         for computer in self.metric_computers:
             metric_dict.update(computer.compute_metrics())
         return metric_dict
-
 
 
 class AssertionTypeMetricComputer(MetricComputer):
@@ -118,7 +119,7 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
             json.dumps(predictions),
         ]
         result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.stderr is not None and  result.stderr != "":
+        if result.stderr is not None and result.stderr != "":
             print(result.stderr)
         list_res = json.loads(result.stdout.strip())
         if len(predictions) == len(list_res):

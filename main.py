@@ -4,7 +4,9 @@ import evaluate
 from src.metrics import (
     AssertionTypeMetricComputer,
     SyntacticCorrectnessMetricComputer,
-    ClassicalMetricComputer, MetricComputer, CombinedMetricComputer,
+    ClassicalMetricComputer,
+    MetricComputer,
+    CombinedMetricComputer,
 )
 
 from itertools import islice
@@ -20,15 +22,20 @@ def predict(input_strings: List[str]) -> List[str]:
 
 def get_metrics() -> CombinedMetricComputer:
     return CombinedMetricComputer(
-        [ClassicalMetricComputer(), SyntacticCorrectnessMetricComputer(), AssertionTypeMetricComputer()])
+        [
+            ClassicalMetricComputer(),
+            SyntacticCorrectnessMetricComputer(),
+            AssertionTypeMetricComputer(),
+        ]
+    )
 
 
 with open(references, "r") as reference_file, open(input_methods, "r") as input_file:
     metric_computer = get_metrics()
     for ref, inputs in zip(
-            iter(lambda: tuple(islice(reference_file, batch_size)), ()),
-            iter(lambda: tuple(islice(input_file, batch_size)), ()),
+        iter(lambda: tuple(islice(reference_file, batch_size)), ()),
+        iter(lambda: tuple(islice(input_file, batch_size)), ()),
     ):
         predictions = predict(inputs)
-        metric_computer.add_to_batch(references=ref, predictions=ref)
+        metric_computer.add_to_batch(references=ref, predictions=predictions)
     print(metric_computer.compute_metrics())
