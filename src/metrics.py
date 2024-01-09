@@ -1,5 +1,4 @@
 import abc
-from functools import reduce
 from typing import List, Dict
 from nltk.translate.bleu_score import sentence_bleu
 
@@ -35,7 +34,7 @@ class CombinedMetricComputer(MetricComputer):
             ClassicalMetricComputer(top_k),
             SyntacticCorrectnessMetricComputer(top_k),
             AssertionTypeMetricComputer(top_k),
-            BleuMetricComputer(top_k)
+            BleuMetricComputer(top_k),
         ]
 
     def add_to_batch(
@@ -189,8 +188,7 @@ class ClassicalMetricComputer(MetricComputer):
         self.total: int = 0
 
     def compute_metrics(self) -> Dict[str, float]:
-        metric_dict = {}
-        metric_dict["accuracy"] = self.correct_predictions / self.total
+        metric_dict = {"accuracy": self.correct_predictions / self.total}
         return metric_dict
 
     def add_to_batch(
@@ -212,56 +210,21 @@ class ClassicalMetricComputer(MetricComputer):
 class BleuMetricComputer(MetricComputer):
     def __init__(self, top_k: int):
         super().__init__(top_k)
-        self.bleu_score_sum:float = 0.0
+        self.bleu_score_sum: float = 0.0
         self.bleu_scores: List[float] = []
 
     def add_to_batch(
         self, references: List[str], top_k_predictions_batch: List[List[str]]
     ) -> None:
         for ref, top_k_preds in zip(references, top_k_predictions_batch):
-            top_k_bleu_score = max([sentence_bleu(references=[ref], hypothesis=top_k_pred, weights=[1]) for top_k_pred in top_k_preds])
+            top_k_bleu_score = max(
+                [
+                    sentence_bleu(references=[ref], hypothesis=top_k_pred, weights=[1])
+                    for top_k_pred in top_k_preds
+                ]
+            )
             self.bleu_score_sum += top_k_bleu_score
             self.bleu_scores.append(top_k_bleu_score)
 
     def compute_metrics(self) -> Dict[str, float]:
         return {"bleu": self.bleu_score_sum / len(self.bleu_scores)}
-
-    # def _extract_from_data(self, data: list[Datapoint]):
-    #
-    #
-    #     target_labels: list = []
-    #     top_prediction_labels: list = []
-    #     in_top_k = 0
-    #
-    #     for d in data:
-    #         target_labels.append(d.target_label)
-    #         top_prediction_labels.append(d.prediction_results[0].label)
-    #         bleu = sentence_bleu(
-    #             references=[d.target_subtokenised_label],
-    #             hypothesis=d.prediction_results[0].subtokenised_label,
-    #             weights=[1],
-    #         )
-    #         bleu_score_sum += bleu
-    #         bleu_scores.append(bleu)
-    #
-    #         if any(pred.label == d.target_label for pred in d.prediction_results):
-    #             in_top_k += 1
-    #
-    #     metrics = Metrics(
-    #         f1_score(
-    #             y_true=target_labels,
-    #             y_pred=top_prediction_labels,
-    #             average="weighted",
-    #         ),
-    #         bleu_score_sum / len(data),
-    #         in_top_k / len(data),
-    #     )
-    #
-    #     return (
-    #         target_labels,
-    #         top_prediction_labels,
-    #         bleu_score_sum,
-    #         bleu_scores,
-    #         in_top_k,
-    #         metrics,
-    #     )

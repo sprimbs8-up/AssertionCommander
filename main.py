@@ -1,15 +1,11 @@
 import sys
 from typing import List
 
-import evaluate
 import requests
 
 from src.metrics import (
-    AssertionTypeMetricComputer,
-    SyntacticCorrectnessMetricComputer,
-    ClassicalMetricComputer,
     MetricComputer,
-    CombinedMetricComputer, BleuMetricComputer,
+    CombinedMetricComputer,
 )
 
 from itertools import islice
@@ -45,7 +41,7 @@ with open(references, "r") as reference_file, open(input_methods, "r") as input_
     metric_computer = get_metrics(top_k)
     for ref, inputs in zip(
         iter(lambda: tuple(islice(reference_file, batch_size)), ()),
-        iter(lambda: tuple(islice(input_file, batch_size)), ())
+        iter(lambda: tuple(islice(input_file, batch_size)), ()),
     ):
         predictions = predict(inputs, top_k)
         metric_computer.add_to_batch(
