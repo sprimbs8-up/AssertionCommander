@@ -115,9 +115,11 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
             "libs/assertions.jar",
             "check",
             "--codes",
-            str(predictions),
+            json.dumps(predictions),
         ]
         result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.stderr is not None and  result.stderr != "":
+            print(result.stderr)
         list_res = json.loads(result.stdout.strip())
         if len(predictions) == len(list_res):
             self.syntactic_correct += sum([1 for res in list_res if res])
