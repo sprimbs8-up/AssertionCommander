@@ -126,13 +126,15 @@ class ClassicalMetricComputer(MetricComputer):
 
     def add_to_batch(self, references: List[str], predictions: List[str]) -> None:
         self.bleu.add_batch(references=references, predictions=predictions)
-        self._accuracy(references,predictions)
+        self._accuracy(references, predictions)
 
     def _accuracy(self, references: List[str], predictions: List[str]):
-        equality = [self._clean(r) == self._clean(p) for r, p in zip(references, predictions)]
-        self.correct_predictions+= len([_ for _ in equality if _])
-        self.total+=len(equality)
+        equality = [
+            self._clean(r) == self._clean(p) for r, p in zip(references, predictions)
+        ]
+        self.correct_predictions += len([_ for _ in equality if _])
+        self.total += len(equality)
 
     @staticmethod
     def _clean(assertion: str):
-        return assertion.replace(" ","")
+        return assertion.replace(" ", "")
