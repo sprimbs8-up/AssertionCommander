@@ -19,6 +19,20 @@ class MetricComputer(abc.ABC):
 def _extract_assertion_types(assertion: List[str]) -> List[str]:
     return [assert_statement.split()[0] for assert_statement in assertion]
 
+class CombinedMetricComputer(MetricComputer):
+    def __init__(self, metric_computers: List[MetricComputer]):
+        self.metric_computers = metric_computers
+    def add_to_batch(self, references: List[str], predictions: List[str]) -> None:
+        for computer in self.metric_computers:
+            computer.add_to_batch(references=references, predictions=predictions)
+
+    def compute_metrics(self) -> Dict[str, float]:
+        metric_dict = {}
+        for computer in self.metric_computers:
+            metric_dict.update(computer.compute_metrics())
+        return metric_dict
+
+
 
 class AssertionTypeMetricComputer(MetricComputer):
     def __init__(self):

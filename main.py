@@ -1,25 +1,34 @@
+from typing import List
+
 import evaluate
 from src.metrics import (
     AssertionTypeMetricComputer,
     SyntacticCorrectnessMetricComputer,
-    ClassicalMetricComputer,
+    ClassicalMetricComputer, MetricComputer, CombinedMetricComputer,
 )
-
 
 from itertools import islice
 
+references = "evaluation-data/10/atlas/assertLines.txt"
+input_methods = "evaluation-data/10/atlas/testMethods.txt"
+batch_size = 1  # Or whatever chunk size you want
 
-def process(a, b):
-    print(list(a))
-    print(list(b))
+
+def predict(input_strings: List[str]) -> List[str]:
+    return input_strings
 
 
-filename = "evaluation-data/10/atlas/assertLines.txt"
-filename2 = "evaluation-data/10/atlas/testMethods.txt"
-batch_size = 16  # Or whatever chunk size you want
-with open(filename, "r") as f, open(filename2, "r") as g:
-    for a, b in zip(
-        iter(lambda: tuple(islice(f, batch_size)), ()),
-        iter(lambda: tuple(islice(g, batch_size)), ()),
+def get_metrics() -> CombinedMetricComputer:
+    return CombinedMetricComputer(
+        [ClassicalMetricComputer(), SyntacticCorrectnessMetricComputer(), AssertionTypeMetricComputer()])
+
+
+with open(references, "r") as reference_file, open(input_methods, "r") as input_file:
+    metric_computer = get_metrics()
+    for ref, inputs in zip(
+            iter(lambda: tuple(islice(reference_file, batch_size)), ()),
+            iter(lambda: tuple(islice(input_file, batch_size)), ()),
     ):
-        process(a, b)
+        predictions = predict(inputs)
+        metric_computer.add_to_batch(references=ref, predictions=predictions)
+    print(metric_computer.compute_metrics())
