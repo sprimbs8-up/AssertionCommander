@@ -1,4 +1,5 @@
 import abc
+from functools import reduce
 from typing import List, Dict
 
 import evaluate
@@ -8,7 +9,7 @@ import json
 
 class MetricComputer(abc.ABC):
     @abc.abstractmethod
-    def add_to_batch(self, references: List[str], predictions: List[str]) -> None:
+    def add_to_batch(self, references: List[str], top_k_predictions_batch: List[List[str]]) -> None:
         pass
 
     @abc.abstractmethod
@@ -24,9 +25,9 @@ class CombinedMetricComputer(MetricComputer):
     def __init__(self, metric_computers: List[MetricComputer]):
         self.metric_computers = metric_computers
 
-    def add_to_batch(self, references: List[str], predictions: List[str]) -> None:
+    def add_to_batch(self, references: List[str], top_k_predictions_batch: List[List[str]]) -> None:
         for computer in self.metric_computers:
-            computer.add_to_batch(references=references, predictions=predictions)
+            computer.add_to_batch(references=references, top_k_predictions_batch=top_k_predictions_batch)
 
     def compute_metrics(self) -> Dict[str, float]:
         metric_dict = {}
@@ -51,9 +52,9 @@ class AssertionTypeMetricComputer(MetricComputer):
         self.recall = evaluate.load("recall")
         self.f1_score = evaluate.load("f1")
 
-    def add_to_batch(self, references: List[str], predictions: List[str]) -> None:
+    def add_to_batch(self, references: List[str], top_k_predictions_batch: List[List[str]]) -> None:
         ref_assertions = _extract_assertion_types(references)
-        pred_assertions = _extract_assertion_types(predictions)
+        pred_assertions = _extract_assertion_types(top_k_predictions_batch)
         ref_assertions_number = self.convert_assertion_list_to_number_list(
             ref_assertions
         )
@@ -105,27 +106,34 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
             "failure_batches": self.failure_batches,
         }
 
-    def add_to_batch(self, references: List[str], predictions: List[str]) -> None:
-        self._compute_syntactic_correct_predictions(predictions)
-        self.total += len(predictions)
+    def add_to_batch(self, references: List[str], top_k_predictions_batch: List[List[str]]) -> None:
+        self._compute_syntactic_correct_predictions(top_k_predictions_batch)
+        self.total += len(top_k_predictions_batch)
 
-    def _compute_syntactic_correct_predictions(self, predictions) -> None:
+    def _compute_syntactic_correct_predictions(self, top_k_predictions_batch: List[List[str]]) -> None:
+        flatten_prediction_batch = []
+        for top_k in top_k_predictions_batch:
+            flatten_prediction_batch.extend(top_k)
         cmd = [
             "java",
             "-jar",
             "libs/assertions.jar",
             "check",
             "--codes",
-            json.dumps(predictions),
+            json.dumps(flatten_prediction_batch),
         ]
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.stderr is not None and result.stderr != "":
             print(result.stderr)
         list_res = json.loads(result.stdout.strip())
-        if len(predictions) == len(list_res):
-            self.syntactic_correct += sum([1 for res in list_res if res])
+        n = 1
+        groups = [list_res[i:i + n] for i in range(0, len(list_res), n)]
+        if len(flatten_prediction_batch) == len(groups):
+            self.syntactic_correct += sum([ 1 if any(res) else 0  for res in groups])
         else:
             self.failure_batches += 1
+
+
 
 
 class ClassicalMetricComputer(MetricComputer):
@@ -141,13 +149,13 @@ class ClassicalMetricComputer(MetricComputer):
         metric_dict["accuracy"] = self.correct_predictions / self.total
         return metric_dict
 
-    def add_to_batch(self, references: List[str], predictions: List[str]) -> None:
-        self.bleu.add_batch(references=references, predictions=predictions)
-        self._accuracy(references, predictions)
+    def add_to_batch(self, references: List[str], top_k_predictions_batch: List[str]) -> None:
+        self.bleu.add_batch(references=references, predictions=top_k_predictions_batch)
+        self._accuracy(references, top_k_predictions_batch)
 
-    def _accuracy(self, references: List[str], predictions: List[str]):
+    def _accuracy(self, references: List[str], top_k_predictions_batch: List[str]):
         equality = [
-            self._clean(r) == self._clean(p) for r, p in zip(references, predictions)
+            self._clean(r) == self._clean(p) for r, p in zip(references, top_k_predictions_batch)
         ]
         self.correct_predictions += len([_ for _ in equality if _])
         self.total += len(equality)
