@@ -1,22 +1,30 @@
 import abc
 from itertools import islice
 from pathlib import Path
-from contextlib import contextmanager
 from tqdm import tqdm
+
+from src.models import Models
 
 
 class DataLoader(abc.ABC):
     def __init__(
         self,
-        model_name: str,
+        model: Models,
         assertion_number: int,
         batch_size: int,
         default_data_dir: str = "evaluation-data",
     ):
-        self.model_name = model_name
+        self.model = model
         self.assertion_number = assertion_number
         self.batch_size = batch_size
         self.default_data_dir = default_data_dir
+
+    def __enter__(self):
+        self.load_files()
+        return self
+
+    def __exit__(self, exception_type, exception_value, exception_traceback):
+        self.close_files()
 
     @abc.abstractmethod
     def load_files(self) -> None:
@@ -36,19 +44,19 @@ class DataLoader(abc.ABC):
 
 
 class AtlasDataLoader(DataLoader):
-    def __init__(self, model_name: str, assertion_number: int, batch_size: int):
-        super().__init__(model_name, assertion_number, batch_size)
+    def __init__(self, model: Models, assertion_number: int, batch_size: int):
+        super().__init__(model, assertion_number, batch_size)
 
         self.references_file_path: Path = (
             Path(self.default_data_dir)
             / str(self.assertion_number)
-            / str(self.model_name)
+            / self.model.name
             / "assertLines.txt"
         )
         self.input_file_path: Path = (
             Path(self.default_data_dir)
             / str(self.assertion_number)
-            / str(self.model_name)
+            / self.model.name
             / "testMethods.txt"
         )
         self.input_file = None
@@ -74,7 +82,7 @@ class AtlasDataLoader(DataLoader):
             ),
             total=total,
             leave=False,
-            desc=f"Evaluating {self.model_name}-{self.assertion_number}",
+            desc=f"Evaluating {self.model.name}-{self.assertion_number}",
         )
 
     def close_files(self):

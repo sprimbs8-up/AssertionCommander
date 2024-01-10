@@ -1,49 +1,30 @@
 import sys
 from enum import Enum
-from typing import List, Dict, Optional
+from typing import List, Dict
 import requests
 
 from src.data_loader import DataLoader, AtlasDataLoader
 from src.metrics import MetricComputer, CombinedMetricComputer
-
-
-class Models(Enum):
-    def __init__(self, name:str):
-        self.name = name
-    ATLAS = "atlas"
-    DOUBLE_TRANSFORMERS = "double-transformers"
-    TOGA = "toga"
-    CODE_2_SEQ = "code2seq"
-
-
-def parse_model(model_string) -> Optional[Models]:
-    match model_string:
-        case "atlas":
-            return Models.ATLAS
-        case "double-transformers":
-            return Models.DOUBLE_TRANSFORMERS
-        case "toga":
-            return Models.TOGA
-        case "code2seq":
-            return Models.CODE_2_SEQ
-    return None
+from src.models import parse_model, Models
 
 
 class AssertionCommander:
     def __init__(
-        self,
-        model_url: str,
-        model_name: str,
-        batch_size: int,
-        top_k: int,
-        metric_evaluators: MetricComputer = None,
+            self,
+            model_url: str,
+            model_name: str,
+            batch_size: int,
+            top_k: int,
+            assertion_number: int,
+            metric_evaluators: MetricComputer = None,
     ):
         self.model_url: str = model_url
-        self.model_name: str = model_name
+        self.model_name: Models = parse_model(model_name)
         self.batch_size: int = batch_size
         self.top_k: int = top_k
         self.metric_evaluators = metric_evaluators
-        self.data_loader = AtlasDataLoader("atlas", 10, self.batch_size)
+        self.assertion_number = assertion_number
+        self.data_loader = AtlasDataLoader(self.model_name, assertion_number, self.batch_size)
         if self.metric_evaluators is None:
             self.metric_evaluators = CombinedMetricComputer(self.top_k)
 
@@ -64,13 +45,11 @@ class AssertionCommander:
         return predictions
 
     def evaluate(self) -> Dict[str, float]:
-        self.data_loader.load_files()
-        try:
+        with self.data_loader:
             for ref, inputs in self.data_loader.load_data_stepwise():
                 predictions = self.predict(inputs, self.top_k)
                 self.metric_evaluators.add_to_batch(
                     references=ref, top_k_predictions_batch=predictions
                 )
-        finally:
-            self.data_loader.close_files()
+
         return self.metric_evaluators.compute_metrics()
