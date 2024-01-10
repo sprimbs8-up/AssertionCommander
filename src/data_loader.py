@@ -12,7 +12,7 @@ class DataLoader(abc.ABC):
         model: Models,
         assertion_number: int,
         batch_size: int,
-        default_data_dir: str = "evaluation-data",
+        default_data_dir: str,
     ):
         self.model = model
         self.assertion_number = assertion_number
@@ -44,8 +44,14 @@ class DataLoader(abc.ABC):
 
 
 class AtlasDataLoader(DataLoader):
-    def __init__(self, model: Models, assertion_number: int, batch_size: int):
-        super().__init__(model, assertion_number, batch_size)
+    def __init__(
+        self,
+        model: Models,
+        assertion_number: int,
+        batch_size: int,
+        default_data_dir: str,
+    ):
+        super().__init__(model, assertion_number, batch_size, default_data_dir)
 
         self.references_file_path: Path = (
             Path(self.default_data_dir)
@@ -88,3 +94,19 @@ class AtlasDataLoader(DataLoader):
     def close_files(self):
         self.ref_file.close()
         self.input_file.close()
+
+
+def build_data_loader(
+    model: Models,
+    assertion_number: int,
+    batch_size: int,
+    default_data_dir: str = "evaluation-data",
+) -> DataLoader:
+    match model:
+        case Models.ATLAS | Models.DOUBLE_TRANSFORMERS:
+            return AtlasDataLoader(
+                model, assertion_number, batch_size, default_data_dir
+            )
+        case Models.TOGA, Models.CODE_2_SEQ:
+            raise NotImplementedError("Model not implemented!")
+    raise ValueError("Model not implemented!")

@@ -15,10 +15,10 @@ class Models(Enum):
     def name(self):
         return self._name
 
-    ATLAS = 'atlas'
-    DOUBLE_TRANSFORMERS = 'double-transformers'
-    TOGA = 'toga'
-    CODE_2_SEQ = 'code2seq'
+    ATLAS = "atlas"
+    DOUBLE_TRANSFORMERS = "double-transformers"
+    TOGA = "toga"
+    CODE_2_SEQ = "code2seq"
 
 
 def parse_model(model_string) -> Optional[Models]:
