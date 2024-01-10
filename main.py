@@ -1,7 +1,7 @@
 from src.commander import AssertionCommander
 from src.data_loader import AtlasDataLoader
 
-batch_size = 3 # Or whatever chunk size you want
+batch_size = 3  # Or whatever chunk size you want
 top_k = 5
 url = "http://localhost:8080/"
 

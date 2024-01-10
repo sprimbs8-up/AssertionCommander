@@ -1,9 +1,32 @@
 import sys
-from typing import List, Dict
+from enum import Enum
+from typing import List, Dict, Optional
 import requests
 
 from src.data_loader import DataLoader, AtlasDataLoader
 from src.metrics import MetricComputer, CombinedMetricComputer
+
+
+class Models(Enum):
+    def __init__(self, name:str):
+        self.name = name
+    ATLAS = "atlas"
+    DOUBLE_TRANSFORMERS = "double-transformers"
+    TOGA = "toga"
+    CODE_2_SEQ = "code2seq"
+
+
+def parse_model(model_string) -> Optional[Models]:
+    match model_string:
+        case "atlas":
+            return Models.ATLAS
+        case "double-transformers":
+            return Models.DOUBLE_TRANSFORMERS
+        case "toga":
+            return Models.TOGA
+        case "code2seq":
+            return Models.CODE_2_SEQ
+    return None
 
 
 class AssertionCommander:
