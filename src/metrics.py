@@ -28,14 +28,16 @@ def _extract_assertion_types(assertion: List[str]) -> List[str]:
 
 
 class CombinedMetricComputer(MetricComputer):
-    def __init__(self, top_k: int):
+    def __init__(self, top_k: int, metric_computers: List[MetricComputer] = None):
         super().__init__(top_k)
-        self.metric_computers = [
-            ClassicalMetricComputer(top_k),
-            SyntacticCorrectnessMetricComputer(top_k),
-            AssertionTypeMetricComputer(top_k),
-            BleuMetricComputer(top_k),
-        ]
+        self.metric_computers = metric_computers
+        if metric_computers is None:
+            self.metric_computers = [
+                ClassicalMetricComputer(top_k),
+                SyntacticCorrectnessMetricComputer(top_k),
+                AssertionTypeMetricComputer(top_k),
+                BleuMetricComputer(top_k),
+            ]
 
     def add_to_batch(
         self, references: List[str], top_k_predictions_batch: List[List[str]]
