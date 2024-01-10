@@ -176,7 +176,7 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
 
 
 def _clean(assertion: str):
-    return assertion.replace(" ", "")
+    return assertion.replace(" ", "").replace("\n", "")
 
 
 def _clean_list(assertions: List[str]) -> List[str]:

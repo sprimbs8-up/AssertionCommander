@@ -1,11 +1,15 @@
+import json
+import logging
 import sys
 from enum import Enum
 from typing import List, Dict
 import requests
 
 from src.data_loader import DataLoader, AtlasDataLoader, build_data_loader
+from src.export import Exporter
 from src.metrics import MetricComputer, CombinedMetricComputer
 from src.models import parse_model, Models
+from src.export import get_exporters_from_str
 
 
 def _build_prediction(input_strings: List[str], top_k: int):
@@ -21,6 +25,7 @@ class AssertionCommander:
         top_k: int,
         assertion_number: int,
         metric_evaluators: MetricComputer = None,
+        exporters: str = None,
     ):
         self.model_url: str = model_url
         self.model_name: Models = parse_model(model_name)
@@ -33,13 +38,20 @@ class AssertionCommander:
         )
         if self.metric_evaluators is None:
             self.metric_evaluators = CombinedMetricComputer(self.top_k)
+        self.exporters = exporters
+        if exporters is None:
+            self.exporters = set()
+        else:
+            self.exporters = get_exporters_from_str(
+                exporters, self.model_name, self.assertion_number
+            )
 
-    def predict(self, input_strings: List[str], top_k: int) -> List[List[str]]:
+    def _predict(self, input_strings: List[str], top_k: int) -> List[List[str]]:
         prediction_response = requests.post(
             url=self.model_url, json=_build_prediction(input_strings, top_k)
         )
         if prediction_response.status_code != 200:
-            print("Error occurred in server! Maybe reduce batch size!")
+            logging.error("Error occurred in server! Maybe reduce batch size!")
             sys.exit(1)
         prediction_response_json = prediction_response.json()
         predictions = []
@@ -51,12 +63,26 @@ class AssertionCommander:
             predictions.append(combined_assertions)
         return predictions
 
-    def evaluate(self) -> Dict[str, float]:
+    def _export_predictions(
+        self, expected: List[str], top_k_predictions: List[List[str]]
+    ) -> None:
+        for exporter in self.exporters:
+            exporter.export_predictions(
+                references=expected, top_k_predictions=top_k_predictions
+            )
+
+    def _export_metrics(self, metrics: Dict[str, float]):
+        for exporter in self.exporters:
+            exporter.export_metrics(metrics)
+
+    def evaluate(self) -> None:
         with self.data_loader:
             for ref, inputs in self.data_loader.load_data_stepwise():
-                predictions = self.predict(inputs, self.top_k)
+                predictions = self._predict(inputs, self.top_k)
+                self._export_predictions(ref, predictions)
                 self.metric_evaluators.add_to_batch(
                     references=ref, top_k_predictions_batch=predictions
                 )
 
-        return self.metric_evaluators.compute_metrics()
+        metrics: Dict[str, float] = self.metric_evaluators.compute_metrics()
+        self._export_metrics(metrics)
