@@ -14,6 +14,15 @@ def _build_prediction(input_strings: list[str], top_k: int) -> dict[str, float]:
     return {"preprocessed_codes": input_strings, "prediction_count": top_k}
 
 
+def _get_metrics_for_bar(metrics: dict[str, float]) -> str:
+    accuracy = metrics["accuracy"] if "accuracy" in metrics else 0
+    syntactic_correct = (
+        metrics["syntactic_correct"] if "syntactic_correct" in metrics else 0
+    )
+    bleu = metrics["bleu"] if "bleu" in metrics else 0
+    return f"Eval [acc: {round(accuracy, 2)}, cor: {round(syntactic_correct, 2)}, bleu: {round(bleu, 2)}]"
+
+
 class AssertionCommander:
     def __init__(
         self,
@@ -89,7 +98,7 @@ class AssertionCommander:
             progress_bar = self.data_loader.load_data_stepwise()
             for ref, inputs in progress_bar:
                 progress_bar.set_description(
-                    self._get_metrics_for_bar(current_metrics), refresh=True
+                    _get_metrics_for_bar(current_metrics), refresh=True
                 )
                 predictions = self._predict(inputs, self.top_k)
                 self._export_predictions(ref, predictions)
@@ -98,11 +107,3 @@ class AssertionCommander:
                 )
                 current_metrics = self.metric_evaluators.compute_metrics()
             self._export_metrics(current_metrics)
-
-    def _get_metrics_for_bar(self, metrics: dict[str, float]) -> str:
-        accuracy = metrics["accuracy"] if "accuracy" in metrics else 0
-        syntactic_correct = (
-            metrics["syntactic_correct"] if "syntactic_correct" in metrics else 0
-        )
-        bleu = metrics["bleu"] if "bleu" in metrics else 0
-        return f"Eval [acc: {round(accuracy, 2)}, cor: {round(syntactic_correct, 2)}, bleu: {round(bleu, 2)}]"
