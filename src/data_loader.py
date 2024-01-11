@@ -5,6 +5,7 @@ from typing import Dict
 
 from tqdm import tqdm
 
+from src.dataset_type import DatasetType
 from src.models import Models
 
 
@@ -15,11 +16,13 @@ class DataLoader(abc.ABC):
         assertion_number: int,
         batch_size: int,
         default_data_dir: str,
+        dataset: DatasetType,
     ):
         self.model = model
         self.assertion_number = assertion_number
         self.batch_size = batch_size
         self.default_data_dir = default_data_dir
+        self.dataset = dataset
 
     def __enter__(self):
         self.load_files()
@@ -52,26 +55,36 @@ class AtlasDataLoader(DataLoader):
         assertion_number: int,
         batch_size: int,
         default_data_dir: str,
+        dataset: DatasetType,
     ):
-        super().__init__(model, assertion_number, batch_size, default_data_dir)
+        super().__init__(model, assertion_number, batch_size, default_data_dir, dataset)
 
         self.references_file_path: Path = (
             Path(self.default_data_dir)
             / str(self.assertion_number)
             / self.model.name
-            / "testing"
+            / self._get_dataset_type_dir()
             / "assertLines.txt"
         )
         self.input_file_path: Path = (
             Path(self.default_data_dir)
             / str(self.assertion_number)
             / self.model.name
-            / "testing"
+            / self._get_dataset_type_dir()
             / "testMethods.txt"
         )
         self.input_file = None
         self.ref_file = None
         self.num_data_elements: int = self.get_number_data_points()
+
+    def _get_dataset_type_dir(self):
+        match self.dataset:
+            case DatasetType.TEST:
+                return "testing"
+            case DatasetType.TRAINING:
+                return "training"
+            case DatasetType.VALIDATION:
+                return "validation"
 
     def get_number_data_points(self) -> int:
         with open(self.input_file_path, "r") as inputs:
@@ -104,12 +117,17 @@ def build_data_loader(
     model: Models,
     assertion_number: int,
     batch_size: int,
-    default_data_dir: str = "evaluation-data",
+    dataset: DatasetType,
+    default_data_dir: str,
 ) -> DataLoader:
     match model:
         case Models.ATLAS | Models.DOUBLE_TRANSFORMERS:
             return AtlasDataLoader(
-                model, assertion_number, batch_size, default_data_dir
+                model=model,
+                assertion_number=assertion_number,
+                batch_size=batch_size,
+                dataset=dataset,
+                default_data_dir=default_data_dir,
             )
         case Models.TOGA, Models.CODE_2_SEQ:
             raise NotImplementedError("Model not implemented!")
