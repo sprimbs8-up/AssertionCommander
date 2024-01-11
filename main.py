@@ -49,7 +49,7 @@ def parse_arguments():
     )
     parser.add_argument(
         "--export",
-        default="logging",
+        default="file:console",
         type=str,
         dest="exporter",
         help="Specifies the type or identifier of the model to be used. This argument is required.",

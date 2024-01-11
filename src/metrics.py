@@ -33,7 +33,7 @@ class CombinedMetricComputer(MetricComputer):
         self.metric_computers = metric_computers
         if metric_computers is None:
             self.metric_computers = [
-                ClassicalMetricComputer(top_k),
+                AccuracyMetricComputer(top_k),
                 SyntacticCorrectnessMetricComputer(top_k),
                 AssertionTypeMetricComputer(top_k),
                 BleuMetricComputer(top_k),
@@ -136,8 +136,11 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
         self.total: int = 0
 
     def compute_metrics(self) -> Dict[str, float]:
+        syntactic_correct = (
+            float(self.syntactic_correct) / float(self.total) if self.total > 0 else 0
+        )
         return {
-            "syntactic_correct": float(self.syntactic_correct) / float(self.total),
+            "syntactic_correct": syntactic_correct,
             "failure_batches": self.failure_batches,
         }
 
@@ -183,14 +186,15 @@ def _clean_list(assertions: List[str]) -> List[str]:
     return [_clean(assertion) for assertion in assertions]
 
 
-class ClassicalMetricComputer(MetricComputer):
+class AccuracyMetricComputer(MetricComputer):
     def __init__(self, top_k: int):
         super().__init__(top_k)
         self.correct_predictions: int = 0
         self.total: int = 0
 
     def compute_metrics(self) -> Dict[str, float]:
-        metric_dict = {"accuracy": self.correct_predictions / self.total}
+        accuracy = self.correct_predictions / self.total if self.total > 0 else 0
+        metric_dict = {"accuracy": accuracy}
         return metric_dict
 
     def add_to_batch(

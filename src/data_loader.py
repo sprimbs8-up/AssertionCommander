@@ -1,6 +1,8 @@
 import abc
 from itertools import islice
 from pathlib import Path
+from typing import Dict
+
 from tqdm import tqdm
 
 from src.models import Models
@@ -57,12 +59,14 @@ class AtlasDataLoader(DataLoader):
             Path(self.default_data_dir)
             / str(self.assertion_number)
             / self.model.name
+            / "testing"
             / "assertLines.txt"
         )
         self.input_file_path: Path = (
             Path(self.default_data_dir)
             / str(self.assertion_number)
             / self.model.name
+            / "testing"
             / "testMethods.txt"
         )
         self.input_file = None
