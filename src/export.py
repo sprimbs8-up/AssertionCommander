@@ -3,7 +3,6 @@ import csv
 import json
 import logging
 from pathlib import Path
-from typing import Dict, List
 
 from src.dataset_type import DatasetType
 from src.models import Models
@@ -33,12 +32,12 @@ class Exporter(abc.ABC):
 
     @abc.abstractmethod
     def export_predictions(
-        self, references: List[str], top_k_predictions: List[List[str]]
+        self, references: list[str], top_k_predictions: list[list[str]]
     ):
         pass
 
     @abc.abstractmethod
-    def export_metrics(self, metrics: Dict[str, float]):
+    def export_metrics(self, metrics: dict[str, float]):
         pass
 
     @abc.abstractmethod
@@ -52,11 +51,11 @@ class Exporter(abc.ABC):
 
 class ConsoleExporter(Exporter):
     def export_predictions(
-        self, references: List[str], top_k_predictions: List[List[str]]
+        self, references: list[str], top_k_predictions: list[list[str]]
     ):
         pass
 
-    def export_metrics(self, metrics: Dict[str, float]):
+    def export_metrics(self, metrics: dict[str, float]):
         logging.info("=" * 100)
         logging.info("Metrics:")
         logging.info(metrics)
@@ -91,13 +90,13 @@ class FileWriterExporter(Exporter):
         self.metric_file_path: Path = self.metric_dir / f"top-{top_k}.json"
 
     def export_predictions(
-        self, references: List[str], top_k_predictions: List[List[str]]
+        self, references: list[str], top_k_predictions: list[list[str]]
     ):
-        for ref, top_k in zip(references, top_k_predictions):
+        for ref, top_k in zip(references, top_k_predictions, strict=False):
             csv_writer = csv.writer(self.prediction_file)
             csv_writer.writerow([ref.replace("\n", "")] + top_k)
 
-    def export_metrics(self, metrics: Dict[str, float]):
+    def export_metrics(self, metrics: dict[str, float]):
         json.dump(metrics, self.metric_file)
 
     def initialize(self):
@@ -127,12 +126,12 @@ class CombinedExporter(Exporter):
         )
 
     def export_predictions(
-        self, references: List[str], top_k_predictions: List[List[str]]
+        self, references: list[str], top_k_predictions: list[list[str]]
     ):
         for exporter in self.exporters:
             exporter.export_predictions(references, top_k_predictions)
 
-    def export_metrics(self, metrics: Dict[str, float]):
+    def export_metrics(self, metrics: dict[str, float]):
         for exporter in self.exporters:
             exporter.export_metrics(metrics)
 

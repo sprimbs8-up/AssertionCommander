@@ -1,7 +1,6 @@
 import abc
 import json
 import subprocess
-from typing import Dict, List
 
 import evaluate
 from nltk.translate.bleu_score import sentence_bleu
@@ -13,21 +12,21 @@ class MetricComputer(abc.ABC):
 
     @abc.abstractmethod
     def add_to_batch(
-        self, references: List[str], top_k_predictions_batch: List[List[str]]
+        self, references: list[str], top_k_predictions_batch: list[list[str]]
     ) -> None:
         pass
 
     @abc.abstractmethod
-    def compute_metrics(self) -> Dict[str, float]:
+    def compute_metrics(self) -> dict[str, float]:
         pass
 
 
-def _extract_assertion_types(assertion: List[str]) -> List[str]:
+def _extract_assertion_types(assertion: list[str]) -> list[str]:
     return [assert_statement.split()[0] for assert_statement in assertion]
 
 
 class CombinedMetricComputer(MetricComputer):
-    def __init__(self, top_k: int, metric_computers: List[MetricComputer] = None):
+    def __init__(self, top_k: int, metric_computers: list[MetricComputer] = None):
         super().__init__(top_k)
         self.metric_computers = metric_computers
         if metric_computers is None:
@@ -39,14 +38,14 @@ class CombinedMetricComputer(MetricComputer):
             ]
 
     def add_to_batch(
-        self, references: List[str], top_k_predictions_batch: List[List[str]]
+        self, references: list[str], top_k_predictions_batch: list[list[str]]
     ) -> None:
         for computer in self.metric_computers:
             computer.add_to_batch(
                 references=references, top_k_predictions_batch=top_k_predictions_batch
             )
 
-    def compute_metrics(self) -> Dict[str, float]:
+    def compute_metrics(self) -> dict[str, float]:
         metric_dict = {}
         for computer in self.metric_computers:
             metric_dict.update(computer.compute_metrics())
@@ -71,7 +70,7 @@ class AssertionTypeMetricComputer(MetricComputer):
         self.f1_score = evaluate.load("f1")
 
     def add_to_batch(
-        self, references: List[str], top_k_predictions_batch: List[List[str]]
+        self, references: list[str], top_k_predictions_batch: list[list[str]]
     ) -> None:
         ref_assertions = _extract_assertion_types(references)
         pred_assertions = [
@@ -85,7 +84,9 @@ class AssertionTypeMetricComputer(MetricComputer):
         ]
         pred_assertions_number = [
             self.select_usable_number(types, expected)
-            for types, expected in zip(pred_assertions_numbers, ref_assertions_number)
+            for types, expected in zip(
+                pred_assertions_numbers, ref_assertions_number, strict=False
+            )
         ]
         self.precision.add_batch(
             predictions=pred_assertions_number, references=ref_assertions_number
@@ -98,13 +99,13 @@ class AssertionTypeMetricComputer(MetricComputer):
         )
 
     @staticmethod
-    def select_usable_number(possible_types: List[int], expected: int) -> int:
+    def select_usable_number(possible_types: list[int], expected: int) -> int:
         if expected in possible_types:
             return expected
         else:
             return possible_types[0]
 
-    def convert_assertion_list_to_number_list(self, assertion: List[str]) -> List[int]:
+    def convert_assertion_list_to_number_list(self, assertion: list[str]) -> list[int]:
         return [
             self.convert_assertion_to_number(assert_type) for assert_type in assertion
         ]
@@ -115,7 +116,7 @@ class AssertionTypeMetricComputer(MetricComputer):
         else:
             return -1
 
-    def compute_metrics(self) -> Dict[str, float]:
+    def compute_metrics(self) -> dict[str, float]:
         final_precision_score = self.precision.compute(average="macro", zero_division=0)
         final_recall_score = self.recall.compute(average="macro", zero_division=0)
         final_f1_score = self.f1_score.compute(average="macro")
@@ -134,7 +135,7 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
         self.failure_batches: int = 0
         self.total: int = 0
 
-    def compute_metrics(self) -> Dict[str, float]:
+    def compute_metrics(self) -> dict[str, float]:
         syntactic_correct = (
             float(self.syntactic_correct) / float(self.total) if self.total > 0 else 0
         )
@@ -144,13 +145,13 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
         }
 
     def add_to_batch(
-        self, references: List[str], top_k_predictions_batch: List[List[str]]
+        self, references: list[str], top_k_predictions_batch: list[list[str]]
     ) -> None:
         self._compute_syntactic_correct_predictions(top_k_predictions_batch)
         self.total += len(top_k_predictions_batch)
 
     def _compute_syntactic_correct_predictions(
-        self, top_k_predictions_batch: List[List[str]]
+        self, top_k_predictions_batch: list[list[str]]
     ) -> None:
         flatten_prediction_batch = []
         for top_k_pred in top_k_predictions_batch:
@@ -163,7 +164,7 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
             "--codes",
             json.dumps(flatten_prediction_batch),
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
         if result.stderr is not None and result.stderr != "":
             print(result.stderr)
         list_res = json.loads(result.stdout.strip())
@@ -181,7 +182,7 @@ def _clean(assertion: str):
     return assertion.replace(" ", "").replace("\n", "")
 
 
-def _clean_list(assertions: List[str]) -> List[str]:
+def _clean_list(assertions: list[str]) -> list[str]:
     return [_clean(assertion) for assertion in assertions]
 
 
@@ -191,22 +192,22 @@ class AccuracyMetricComputer(MetricComputer):
         self.correct_predictions: int = 0
         self.total: int = 0
 
-    def compute_metrics(self) -> Dict[str, float]:
+    def compute_metrics(self) -> dict[str, float]:
         accuracy = self.correct_predictions / self.total if self.total > 0 else 0
         metric_dict = {"accuracy": accuracy}
         return metric_dict
 
     def add_to_batch(
-        self, references: List[str], top_k_predictions_batch: List[List[str]]
+        self, references: list[str], top_k_predictions_batch: list[list[str]]
     ) -> None:
         self._accuracy(references, top_k_predictions_batch)
 
     def _accuracy(
-        self, references: List[str], top_k_predictions_batch: List[List[str]]
+        self, references: list[str], top_k_predictions_batch: list[list[str]]
     ):
         equality = [
             _clean(r) in _clean_list(p)
-            for r, p in zip(references, top_k_predictions_batch)
+            for r, p in zip(references, top_k_predictions_batch, strict=False)
         ]
         self.correct_predictions += len([_ for _ in equality if _])
         self.total += len(equality)
@@ -216,12 +217,12 @@ class BleuMetricComputer(MetricComputer):
     def __init__(self, top_k: int):
         super().__init__(top_k)
         self.bleu_score_sum: float = 0.0
-        self.bleu_scores: List[float] = []
+        self.bleu_scores: list[float] = []
 
     def add_to_batch(
-        self, references: List[str], top_k_predictions_batch: List[List[str]]
+        self, references: list[str], top_k_predictions_batch: list[list[str]]
     ) -> None:
-        for ref, top_k_preds in zip(references, top_k_predictions_batch):
+        for ref, top_k_preds in zip(references, top_k_predictions_batch, strict=False):
             top_k_bleu_score = max(
                 [
                     sentence_bleu(references=[ref], hypothesis=top_k_pred, weights=[1])
@@ -231,5 +232,5 @@ class BleuMetricComputer(MetricComputer):
             self.bleu_score_sum += top_k_bleu_score
             self.bleu_scores.append(top_k_bleu_score)
 
-    def compute_metrics(self) -> Dict[str, float]:
+    def compute_metrics(self) -> dict[str, float]:
         return {"bleu": self.bleu_score_sum / len(self.bleu_scores)}

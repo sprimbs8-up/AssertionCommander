@@ -8,7 +8,7 @@ from src.commander import AssertionCommander
 from src.dataset_type import parse_type
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Description of your script.")
     parser.add_argument(
         "--root-dir",
@@ -78,8 +78,7 @@ def parse_arguments():
         help="Specifies the type or identifier of the model to be used. This argument is required.",
     )
 
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main(args: argparse.Namespace) -> int:
@@ -113,7 +112,8 @@ def _log_args(args: argparse.Namespace) -> None:
     logging.info("Configuration:")  #
     max_length = max([len(arg) for arg in vars(args)])
     for arg in vars(args):
-        logging.info(f"- {arg}:{' '*(max_length - len(arg)+2)}{getattr(args, arg)}")
+        logging_str = f"- {arg}:{' '*(max_length - len(arg)+2)}{getattr(args, arg)}"
+        logging.info(logging_str)
 
 
 if __name__ == "__main__":

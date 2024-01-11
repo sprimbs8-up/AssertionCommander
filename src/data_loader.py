@@ -1,7 +1,7 @@
 import abc
 from itertools import islice
 from pathlib import Path
-from typing import Dict
+from collections.abc import Iterable
 
 from tqdm import tqdm
 
@@ -17,18 +17,18 @@ class DataLoader(abc.ABC):
         batch_size: int,
         default_data_dir: str,
         dataset: DatasetType,
-    ):
+    ) -> None:
         self.model = model
         self.assertion_number = assertion_number
         self.batch_size = batch_size
         self.default_data_dir = default_data_dir
         self.dataset = dataset
 
-    def __enter__(self):
+    def __enter__(self) -> object:
         self.load_files()
         return self
 
-    def __exit__(self, exception_type, exception_value, exception_traceback):
+    def __exit__(self, *exc_details: object) -> None:
         self.close_files()
 
     @abc.abstractmethod
@@ -36,7 +36,7 @@ class DataLoader(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def load_data_stepwise(self):
+    def load_data_stepwise(self) -> Iterable[tuple[tuple[str], tuple[str]]]:
         pass
 
     @abc.abstractmethod
@@ -56,7 +56,7 @@ class AtlasDataLoader(DataLoader):
         batch_size: int,
         default_data_dir: str,
         dataset: DatasetType,
-    ):
+    ) -> None:
         super().__init__(model, assertion_number, batch_size, default_data_dir, dataset)
 
         self.references_file_path: Path = (
@@ -77,7 +77,7 @@ class AtlasDataLoader(DataLoader):
         self.ref_file = None
         self.num_data_elements: int = self.get_number_data_points()
 
-    def _get_dataset_type_dir(self):
+    def _get_dataset_type_dir(self) -> str:
         match self.dataset:
             case DatasetType.TEST:
                 return "testing"
@@ -87,14 +87,14 @@ class AtlasDataLoader(DataLoader):
                 return "validation"
 
     def get_number_data_points(self) -> int:
-        with open(self.input_file_path, "r") as inputs:
+        with Path.open(self.input_file_path) as inputs:
             return len(inputs.readlines())
 
-    def load_files(self):
-        self.ref_file = open(self.references_file_path, "r")
-        self.input_file = open(self.input_file_path, "r")
+    def load_files(self) -> None:
+        self.ref_file = Path.open(self.references_file_path)
+        self.input_file = Path.open(self.input_file_path)
 
-    def load_data_stepwise(self):
+    def load_data_stepwise(self) -> Iterable[tuple[tuple[str], tuple[str]]]:
         total = self.num_data_elements // self.batch_size
         if self.num_data_elements % self.batch_size != 0:
             total += 1
@@ -102,13 +102,14 @@ class AtlasDataLoader(DataLoader):
             zip(
                 iter(lambda: tuple(islice(self.ref_file, self.batch_size)), ()),
                 iter(lambda: tuple(islice(self.input_file, self.batch_size)), ()),
+                strict=False,
             ),
             total=total,
             leave=False,
             desc=f"Evaluating {self.model.name}-{self.assertion_number}",
         )
 
-    def close_files(self):
+    def close_files(self) -> None:
         self.ref_file.close()
         self.input_file.close()
 
@@ -130,5 +131,5 @@ def build_data_loader(
                 default_data_dir=default_data_dir,
             )
         case Models.TOGA, Models.CODE_2_SEQ:
-            raise NotImplementedError("Model not implemented!")
-    raise ValueError("Model not implemented!")
+            raise NotImplementedError
+    raise ValueError

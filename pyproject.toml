@@ -14,6 +14,7 @@ urllib3 = "^1.26.12"
 nltk = "^3.8.1"
 tqdm = "^4.66.1"
 isort = { version = "~5.13.0", extras = ["pyproject"] }
+ruff = "~0.1.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -26,3 +27,38 @@ multi_line_output = 3
 include_trailing_comma = true
 indent = "    "
 
+[tool.black]
+line-length = 88
+target_version = ["py310"]
+include = '\.pyi?$'
+
+
+[tool.ruff]
+line-length = 88
+select = ["ALL"]
+# base set of ignored rules, to be adapted as needed
+# https://beta.ruff.rs/docs/rules/
+ignore = [
+    "ANN003", # typing annotations for kwargs, self, cls not needed
+    "ANN101",
+    "ANN102",
+    "COM", # trailing commas -> black
+    "D", # documentation
+    "E", # code style -> black
+    "EXE002", # executable files must not specify a shebang
+    "I", # import order -> isort
+    "ISC",
+    "T20", # allow print statements
+    "PLR",
+    "RUF013",
+    "S113"
+]
+show-source = true
+exclude = [
+    "docs",
+    ".venv",
+    "venv",
+    ".mypy_cache",
+    ".pytest_cache",
+]
+target-version = "py310"

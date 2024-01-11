@@ -1,19 +1,16 @@
-import json
 import logging
 import sys
-from enum import Enum
-from typing import Dict, List
 
 import requests
 
-from src.data_loader import AtlasDataLoader, DataLoader, build_data_loader
+from src.data_loader import build_data_loader
 from src.dataset_type import DatasetType
 from src.export import CombinedExporter
 from src.metrics import CombinedMetricComputer, MetricComputer
 from src.models import Models, parse_model
 
 
-def _build_prediction(input_strings: List[str], top_k: int):
+def _build_prediction(input_strings: list[str], top_k: int) -> dict[str, float]:
     return {"preprocessed_codes": input_strings, "prediction_count": top_k}
 
 
@@ -30,7 +27,7 @@ class AssertionCommander:
         export_dir: str,
         metric_evaluators: MetricComputer = None,
         exporters: str = None,
-    ):
+    ) -> None:
         self.model_url: str = model_url
         self.model: Models = parse_model(model_name)
         self.batch_size: int = batch_size
@@ -59,7 +56,7 @@ class AssertionCommander:
             exporters_str=exporters,
         )
 
-    def _predict(self, input_strings: List[str], top_k: int) -> List[List[str]]:
+    def _predict(self, input_strings: list[str], top_k: int) -> list[list[str]]:
         prediction_response = requests.post(
             url=self.model_url, json=_build_prediction(input_strings, top_k)
         )
@@ -77,13 +74,13 @@ class AssertionCommander:
         return predictions
 
     def _export_predictions(
-        self, expected: List[str], top_k_predictions: List[List[str]]
+        self, expected: list[str], top_k_predictions: list[list[str]]
     ) -> None:
         self.exporters.export_predictions(
             references=expected, top_k_predictions=top_k_predictions
         )
 
-    def _export_metrics(self, metrics: Dict[str, float]):
+    def _export_metrics(self, metrics: dict[str, float]) -> None:
         self.exporters.export_metrics(metrics)
 
     def evaluate(self) -> None:
@@ -102,7 +99,7 @@ class AssertionCommander:
                 current_metrics = self.metric_evaluators.compute_metrics()
             self._export_metrics(current_metrics)
 
-    def _get_metrics_for_bar(self, metrics: Dict[str, float]):
+    def _get_metrics_for_bar(self, metrics: dict[str, float]) -> str:
         accuracy = metrics["accuracy"] if "accuracy" in metrics else 0
         syntactic_correct = (
             metrics["syntactic_correct"] if "syntactic_correct" in metrics else 0
