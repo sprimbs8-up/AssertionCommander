@@ -58,7 +58,14 @@ class ConsoleExporter(Exporter):
     def export_metrics(self, metrics: dict[str, float]) -> None:
         logging.info("=" * 100)
         logging.info("Metrics:")
-        logging.info(metrics)
+        maximal_key = max([len(key) for key in metrics])
+        for metric in metrics:
+            logging.info(
+                " - %s:%s%s",
+                metric,
+                " " * (maximal_key - len(metric) + 1),
+                metrics[metric],
+            )
         logging.info("=" * 100)
 
     def initialize(self) -> None:
@@ -85,9 +92,13 @@ class FileWriterExporter(Exporter):
             Path(self.default_dir) / str(self.assertion_number) / self.model.name
         )
         self.prediction_dir: Path = self.base_path / "predictions"
-        self.prediction_file_path: Path = self.prediction_dir / f"{self.dataset_type.type_name}_top-{top_k}.csv"
+        self.prediction_file_path: Path = (
+            self.prediction_dir / f"{self.dataset_type.type_name}_top-{top_k}.csv"
+        )
         self.metric_dir: Path = self.base_path / "metrics"
-        self.metric_file_path: Path = self.metric_dir / f"{self.dataset_type.type_name}_top-{top_k}.json"
+        self.metric_file_path: Path = (
+            self.metric_dir / f"{self.dataset_type.type_name}_top-{top_k}.json"
+        )
 
     def export_predictions(
         self, references: list[str], top_k_predictions: list[list[str]]

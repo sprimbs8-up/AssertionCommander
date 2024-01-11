@@ -1,7 +1,6 @@
 import abc
 from itertools import islice
 from pathlib import Path
-from collections.abc import Iterable
 
 from tqdm import tqdm
 
@@ -36,7 +35,7 @@ class DataLoader(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def load_data_stepwise(self) -> Iterable[tuple[tuple[str], tuple[str]]]:
+    def load_data_stepwise(self) -> tqdm:
         pass
 
     @abc.abstractmethod
@@ -94,7 +93,7 @@ class AtlasDataLoader(DataLoader):
         self.ref_file = Path.open(self.references_file_path)
         self.input_file = Path.open(self.input_file_path)
 
-    def load_data_stepwise(self) -> Iterable[tuple[tuple[str], tuple[str]]]:
+    def load_data_stepwise(self) -> tqdm:
         total = self.num_data_elements // self.batch_size
         if self.num_data_elements % self.batch_size != 0:
             total += 1
