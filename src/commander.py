@@ -70,8 +70,7 @@ class AssertionCommander:
             url=self.model_url, json=_build_prediction(input_strings, top_k)
         )
         if prediction_response.status_code != 200:
-            logging.error("Error occurred in server! Maybe reduce batch size!")
-            sys.exit(1)
+            self._handle_request_errors(prediction_response)
         prediction_response_json = prediction_response.json()
         predictions = []
         for prediction_response_obj in prediction_response_json:
@@ -81,6 +80,16 @@ class AssertionCommander:
             ]
             predictions.append(combined_assertions)
         return predictions
+
+    def _handle_request_errors(self, prediction_response: requests.Response) -> None:
+        try:
+            json_resp = prediction_response.json()
+            for error in json_resp["error"]:
+                logging.error(error)
+        except Exception:
+            error_msg = "An Error occurred in server part. Please see server logs!"
+            logging.exception(error_msg)
+        sys.exit(1)
 
     def _export_predictions(
         self, expected: list[str], top_k_predictions: list[list[str]]
