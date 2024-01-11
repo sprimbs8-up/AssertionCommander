@@ -1,7 +1,9 @@
 import argparse
-import sys
 import logging
+import sys
+
 from tqdm.contrib.logging import logging_redirect_tqdm
+
 from src.commander import AssertionCommander
 from src.dataset_type import parse_type
 

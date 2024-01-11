@@ -2,14 +2,15 @@ import json
 import logging
 import sys
 from enum import Enum
-from typing import List, Dict
+from typing import Dict, List
+
 import requests
 
-from src.data_loader import DataLoader, AtlasDataLoader, build_data_loader
+from src.data_loader import AtlasDataLoader, DataLoader, build_data_loader
 from src.dataset_type import DatasetType
 from src.export import CombinedExporter
-from src.metrics import MetricComputer, CombinedMetricComputer
-from src.models import parse_model, Models
+from src.metrics import CombinedMetricComputer, MetricComputer
+from src.models import Models, parse_model
 
 
 def _build_prediction(input_strings: List[str], top_k: int):

@@ -1,11 +1,10 @@
 import abc
-from typing import List, Dict
-from nltk.translate.bleu_score import sentence_bleu
-
+import json
+import subprocess
+from typing import Dict, List
 
 import evaluate
-import subprocess
-import json
+from nltk.translate.bleu_score import sentence_bleu
 
 
 class MetricComputer(abc.ABC):
