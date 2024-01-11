@@ -7,7 +7,7 @@ from nltk.translate.bleu_score import sentence_bleu
 
 
 class MetricComputer(abc.ABC):
-    def __init__(self, top_k: int):
+    def __init__(self, top_k: int) -> None:
         self.top_k = top_k
 
     @abc.abstractmethod
@@ -26,7 +26,9 @@ def _extract_assertion_types(assertion: list[str]) -> list[str]:
 
 
 class CombinedMetricComputer(MetricComputer):
-    def __init__(self, top_k: int, metric_computers: list[MetricComputer] = None):
+    def __init__(
+        self, top_k: int, metric_computers: list[MetricComputer] = None
+    ) -> None:
         super().__init__(top_k)
         self.metric_computers = metric_computers
         if metric_computers is None:
@@ -53,7 +55,7 @@ class CombinedMetricComputer(MetricComputer):
 
 
 class AssertionTypeMetricComputer(MetricComputer):
-    def __init__(self, top_k: int):
+    def __init__(self, top_k: int) -> None:
         super().__init__(top_k)
         self.assertionTypeDict = {
             "assertEquals": 0,
@@ -102,8 +104,8 @@ class AssertionTypeMetricComputer(MetricComputer):
     def select_usable_number(possible_types: list[int], expected: int) -> int:
         if expected in possible_types:
             return expected
-        else:
-            return possible_types[0]
+
+        return possible_types[0]
 
     def convert_assertion_list_to_number_list(self, assertion: list[str]) -> list[int]:
         return [
@@ -113,8 +115,8 @@ class AssertionTypeMetricComputer(MetricComputer):
     def convert_assertion_to_number(self, assertion: str) -> int:
         if assertion in self.assertionTypeDict:
             return self.assertionTypeDict[assertion]
-        else:
-            return -1
+
+        return -1
 
     def compute_metrics(self) -> dict[str, float]:
         final_precision_score = self.precision.compute(average="macro", zero_division=0)
@@ -129,7 +131,7 @@ class AssertionTypeMetricComputer(MetricComputer):
 
 
 class SyntacticCorrectnessMetricComputer(MetricComputer):
-    def __init__(self, top_k: int):
+    def __init__(self, top_k: int) -> None:
         super().__init__(top_k)
         self.syntactic_correct: int = 0
         self.failure_batches: int = 0
@@ -147,6 +149,7 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
     def add_to_batch(
         self, references: list[str], top_k_predictions_batch: list[list[str]]
     ) -> None:
+        super().add_to_batch(references, top_k_predictions_batch)
         self._compute_syntactic_correct_predictions(top_k_predictions_batch)
         self.total += len(top_k_predictions_batch)
 
@@ -178,7 +181,7 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
             self.failure_batches += 1
 
 
-def _clean(assertion: str):
+def _clean(assertion: str) -> str:
     return assertion.replace(" ", "").replace("\n", "")
 
 
@@ -187,15 +190,14 @@ def _clean_list(assertions: list[str]) -> list[str]:
 
 
 class AccuracyMetricComputer(MetricComputer):
-    def __init__(self, top_k: int):
+    def __init__(self, top_k: int) -> None:
         super().__init__(top_k)
         self.correct_predictions: int = 0
         self.total: int = 0
 
     def compute_metrics(self) -> dict[str, float]:
         accuracy = self.correct_predictions / self.total if self.total > 0 else 0
-        metric_dict = {"accuracy": accuracy}
-        return metric_dict
+        return {"accuracy": accuracy}
 
     def add_to_batch(
         self, references: list[str], top_k_predictions_batch: list[list[str]]
@@ -204,7 +206,7 @@ class AccuracyMetricComputer(MetricComputer):
 
     def _accuracy(
         self, references: list[str], top_k_predictions_batch: list[list[str]]
-    ):
+    ) -> None:
         equality = [
             _clean(r) in _clean_list(p)
             for r, p in zip(references, top_k_predictions_batch, strict=False)
@@ -214,7 +216,7 @@ class AccuracyMetricComputer(MetricComputer):
 
 
 class BleuMetricComputer(MetricComputer):
-    def __init__(self, top_k: int):
+    def __init__(self, top_k: int) -> None:
         super().__init__(top_k)
         self.bleu_score_sum: float = 0.0
         self.bleu_scores: list[float] = []

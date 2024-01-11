@@ -51,7 +51,8 @@ ignore = [
     "T20", # allow print statements
     "PLR",
     "RUF013",
-    "S113"
+    "S113",
+    "S603"
 ]
 show-source = true
 exclude = [
