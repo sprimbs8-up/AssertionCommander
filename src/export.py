@@ -16,55 +16,55 @@ class Exporter(abc.ABC):
         top_k: int,
         default_dir: str,
         dataset_type: DatasetType,
-    ):
+    ) -> None:
         self.model: Models = model
         self.assertion_number: int = assertion_number
         self.top_k = top_k
         self.default_dir = default_dir
         self.dataset_type = dataset_type
 
-    def __enter__(self):
+    def __enter__(self) -> object:
         self.initialize()
         return self
 
-    def __exit__(self, exception_type, exception_value, exception_traceback):
+    def __exit__(self, *exc_details: object) -> None:
         self.close()
 
     @abc.abstractmethod
     def export_predictions(
         self, references: list[str], top_k_predictions: list[list[str]]
-    ):
+    ) -> None:
         pass
 
     @abc.abstractmethod
-    def export_metrics(self, metrics: dict[str, float]):
+    def export_metrics(self, metrics: dict[str, float]) -> None:
         pass
 
     @abc.abstractmethod
-    def initialize(self):
+    def initialize(self) -> None:
         pass
 
     @abc.abstractmethod
-    def close(self):
+    def close(self) -> None:
         pass
 
 
 class ConsoleExporter(Exporter):
     def export_predictions(
         self, references: list[str], top_k_predictions: list[list[str]]
-    ):
+    ) -> None:
         pass
 
-    def export_metrics(self, metrics: dict[str, float]):
+    def export_metrics(self, metrics: dict[str, float]) -> None:
         logging.info("=" * 100)
         logging.info("Metrics:")
         logging.info(metrics)
         logging.info("=" * 100)
 
-    def initialize(self):
+    def initialize(self) -> None:
         pass
 
-    def close(self):
+    def close(self) -> None:
         pass
 
 
@@ -76,7 +76,7 @@ class FileWriterExporter(Exporter):
         top_k: int,
         default_dir: str,
         dataset_type: DatasetType,
-    ):
+    ) -> None:
         super().__init__(model, assertion_number, top_k, default_dir, dataset_type)
         self.prediction_file = None
         self.metric_file = None
@@ -91,21 +91,21 @@ class FileWriterExporter(Exporter):
 
     def export_predictions(
         self, references: list[str], top_k_predictions: list[list[str]]
-    ):
+    ) -> None:
         for ref, top_k in zip(references, top_k_predictions, strict=False):
             csv_writer = csv.writer(self.prediction_file)
-            csv_writer.writerow([ref.replace("\n", "")] + top_k)
+            csv_writer.writerow([ref.replace("\n", ""), *top_k])
 
-    def export_metrics(self, metrics: dict[str, float]):
+    def export_metrics(self, metrics: dict[str, float]) -> None:
         json.dump(metrics, self.metric_file)
 
-    def initialize(self):
+    def initialize(self) -> None:
         self.prediction_dir.mkdir(parents=True, exist_ok=True)
         self.metric_dir.mkdir(parents=True, exist_ok=True)
-        self.prediction_file = open(self.prediction_file_path, mode="w")
-        self.metric_file = open(self.metric_file_path, mode="w")
+        self.prediction_file = Path.open(self.prediction_file_path, mode="w")
+        self.metric_file = Path.open(self.metric_file_path, mode="w")
 
-    def close(self):
+    def close(self) -> None:
         self.prediction_file.close()
         self.metric_file.close()
 
@@ -119,7 +119,7 @@ class CombinedExporter(Exporter):
         default_dir: str,
         dataset_type: DatasetType,
         exporters_str: str,
-    ):
+    ) -> None:
         super().__init__(model, assertion_number, top_k, default_dir, dataset_type)
         self.exporters = _get_exporters_from_str(
             exporters_str, model, assertion_number, top_k, default_dir, dataset_type
@@ -127,19 +127,19 @@ class CombinedExporter(Exporter):
 
     def export_predictions(
         self, references: list[str], top_k_predictions: list[list[str]]
-    ):
+    ) -> None:
         for exporter in self.exporters:
             exporter.export_predictions(references, top_k_predictions)
 
-    def export_metrics(self, metrics: dict[str, float]):
+    def export_metrics(self, metrics: dict[str, float]) -> None:
         for exporter in self.exporters:
             exporter.export_metrics(metrics)
 
-    def initialize(self):
+    def initialize(self) -> None:
         for exporter in self.exporters:
             exporter.initialize()
 
-    def close(self):
+    def close(self) -> None:
         for exporter in self.exporters:
             exporter.close()
 
@@ -177,4 +177,5 @@ def _parse_exporter(
             return FileWriterExporter(
                 model, assertion_number, top_k, default_dir, dataset_type
             )
-    raise NotImplementedError(f'The exporter "{exporter}" is not available.')
+    error_msg = f'The exporter "{exporter}" is not available.'
+    raise NotImplementedError(error_msg)

@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Optional
 
 
 class DatasetType(Enum):
@@ -7,19 +6,23 @@ class DatasetType(Enum):
     TEST = "test"
     VALIDATION = "val"
 
-    def __new__(cls, *args, **kwds):
+    def __new__(cls, *args: object) -> object:
         obj = object.__new__(cls)
         obj._value_ = args[0]
         return obj
 
-    def __init__(self, type: str):
-        self._type: str = type
+    def __init__(self, type_name: str) -> None:
+        self._type_name: str = type_name
 
     @property
-    def type(self):
-        return self._type
+    def type_name(self) -> str:
+        return self._type_name
 
 
-def parse_type(type_string) -> Optional[DatasetType]:
-    types = [type_str for type_str in list(DatasetType) if type_str.type == type_string]
+def parse_type(type_string: str) -> DatasetType | None:
+    types = [
+        data_type
+        for data_type in list(DatasetType)
+        if data_type.type_name == type_string
+    ]
     return None if len(types) == 0 else types[0]
