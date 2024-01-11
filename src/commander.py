@@ -7,10 +7,9 @@ import requests
 
 from src.data_loader import DataLoader, AtlasDataLoader, build_data_loader
 from src.dataset_type import DatasetType
-from src.export import Exporter, parse_exporter
+from src.export import CombinedExporter
 from src.metrics import MetricComputer, CombinedMetricComputer
 from src.models import parse_model, Models
-from src.export import get_exporters_from_str
 
 
 def _build_prediction(input_strings: List[str], top_k: int):
@@ -27,29 +26,36 @@ class AssertionCommander:
         assertion_number: int,
         dataset_type: DatasetType,
         root_dir: str,
+        export_dir: str,
         metric_evaluators: MetricComputer = None,
         exporters: str = None,
     ):
         self.model_url: str = model_url
-        self.model_name: Models = parse_model(model_name)
+        self.model: Models = parse_model(model_name)
         self.batch_size: int = batch_size
         self.top_k: int = top_k
         self.assertion_number = assertion_number
         self.dataset_type = dataset_type
         self.root_dir = root_dir
+        self.export_dir = export_dir
         self.metric_evaluators = metric_evaluators
         self.data_loader = build_data_loader(
-            self.model_name,
-            assertion_number,
-            self.batch_size,
-            self.dataset_type,
-            self.root_dir,
+            model=self.model,
+            assertion_number=self.assertion_number,
+            batch_size=self.batch_size,
+            dataset=self.dataset_type,
+            default_data_dir=self.root_dir,
         )
         if self.metric_evaluators is None:
             self.metric_evaluators = CombinedMetricComputer(self.top_k)
 
-        self.exporters = get_exporters_from_str(
-            exporters, self.model_name, self.assertion_number, self.top_k
+        self.exporters = CombinedExporter(
+            model=self.model,
+            assertion_number=self.assertion_number,
+            top_k=self.top_k,
+            default_dir=self.export_dir,
+            dataset_type=self.dataset_type,
+            exporters_str=exporters,
         )
 
     def _predict(self, input_strings: List[str], top_k: int) -> List[List[str]]:

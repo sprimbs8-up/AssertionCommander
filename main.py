@@ -62,6 +62,13 @@ def parse_arguments():
         help="Specifies the type or identifier of the model to be used. This argument is required.",
     )
     parser.add_argument(
+        "--export-dir",
+        default="results",
+        type=str,
+        dest="export_dir",
+        help="Specifies the root directory of the metrics to be exported.",
+    )
+    parser.add_argument(
         "--type",
         default="test",
         type=str,
@@ -84,6 +91,7 @@ def main(args: argparse.Namespace) -> int:
     model = args.model
     exporters = args.exporter
     dataset_type = args.type
+    export_dir = args.export_dir
     commander: AssertionCommander = AssertionCommander(
         model_url=model_url,
         model_name=model,
@@ -93,6 +101,7 @@ def main(args: argparse.Namespace) -> int:
         exporters=exporters,
         dataset_type=parse_type(dataset_type),
         root_dir=root_dir,
+        export_dir=export_dir,
     )
     commander.evaluate()
     return 0

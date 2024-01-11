@@ -5,14 +5,24 @@ import csv
 from pathlib import Path
 from typing import List, Dict
 
+from src.dataset_type import DatasetType
 from src.models import Models
 
 
 class Exporter(abc.ABC):
-    def __init__(self, model: Models, assertion_number: int, top_k: int):
+    def __init__(
+        self,
+        model: Models,
+        assertion_number: int,
+        top_k: int,
+        default_dir: str,
+        dataset_type: DatasetType,
+    ):
         self.model: Models = model
         self.assertion_number: int = assertion_number
         self.top_k = top_k
+        self.default_dir = default_dir
+        self.dataset_type = dataset_type
 
     def __enter__(self):
         self.initialize()
@@ -65,9 +75,10 @@ class FileWriterExporter(Exporter):
         model: Models,
         assertion_number: int,
         top_k: int,
-        default_dir: str = "results",
+        default_dir: str,
+        dataset_type: DatasetType,
     ):
-        super().__init__(model, assertion_number, top_k)
+        super().__init__(model, assertion_number, top_k, default_dir, dataset_type)
         self.prediction_file = None
         self.metric_file = None
         self.default_dir = default_dir
@@ -101,12 +112,19 @@ class FileWriterExporter(Exporter):
 
 
 class CombinedExporter(Exporter):
-    def __init__(self, model: Models, assertion_number: int, top_k: int):
-        super().__init__(model, assertion_number, top_k)
-        self.exporters = {
-            ConsoleExporter(model, assertion_number, top_k),
-            FileWriterExporter(model, assertion_number, top_k),
-        }
+    def __init__(
+        self,
+        model: Models,
+        assertion_number: int,
+        top_k: int,
+        default_dir: str,
+        dataset_type: DatasetType,
+        exporters_str: str,
+    ):
+        super().__init__(model, assertion_number, top_k, default_dir, dataset_type)
+        self.exporters = _get_exporters_from_str(
+            exporters_str, model, assertion_number, top_k, default_dir, dataset_type
+        )
 
     def export_predictions(
         self, references: List[str], top_k_predictions: List[List[str]]
@@ -127,18 +145,37 @@ class CombinedExporter(Exporter):
             exporter.close()
 
 
-def get_exporters_from_str(
-    exporters: str, model: Models, assertion_number: int, top_k: int
-) -> CombinedExporter:
-    return CombinedExporter(model, assertion_number, top_k)
+def _get_exporters_from_str(
+    exporters: str,
+    model: Models,
+    assertion_number: int,
+    top_k: int,
+    default_dir: str,
+    dataset_type: DatasetType,
+) -> set[Exporter]:
+    return {
+        _parse_exporter(
+            exporter, model, assertion_number, top_k, default_dir, dataset_type
+        )
+        for exporter in exporters.split(":")
+    }
 
 
-def parse_exporter(
-    exporter: str, model: Models, assertion_number: int, top_k: int
+def _parse_exporter(
+    exporter: str,
+    model: Models,
+    assertion_number: int,
+    top_k: int,
+    default_dir: str,
+    dataset_type: DatasetType,
 ) -> Exporter:
     match exporter:
         case "console":
-            return ConsoleExporter(model, assertion_number, top_k)
+            return ConsoleExporter(
+                model, assertion_number, top_k, default_dir, dataset_type
+            )
         case "file":
-            return FileWriterExporter(model, assertion_number, top_k)
+            return FileWriterExporter(
+                model, assertion_number, top_k, default_dir, dataset_type
+            )
     raise NotImplementedError(f'The exporter "{exporter}" is not available.')

@@ -21,7 +21,5 @@ class DatasetType(Enum):
 
 
 def parse_type(type_string) -> Optional[DatasetType]:
-    models = [
-        type_str for type_str in list(DatasetType) if type_str.name == type_string
-    ]
-    return None if len(models) == 0 else models[0]
+    types = [type_str for type_str in list(DatasetType) if type_str.type == type_string]
+    return None if len(types) == 0 else types[0]
