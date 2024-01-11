@@ -1,18 +1,17 @@
 from enum import Enum
-from typing import Optional
 
 
 class Models(Enum):
-    def __new__(cls, *args, **kwds):
+    def __new__(cls, *args: object) -> object:
         obj = object.__new__(cls)
         obj._value_ = args[0]
         return obj
 
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         self._name: str = name
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     ATLAS = "atlas"
@@ -21,6 +20,6 @@ class Models(Enum):
     CODE_2_SEQ = "code2seq"
 
 
-def parse_model(model_string) -> Optional[Models]:
+def parse_model(model_string: str) -> Models | None:
     models = [model for model in list(Models) if model.name == model_string]
     return None if len(models) == 0 else models[0]
