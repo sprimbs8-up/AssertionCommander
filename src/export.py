@@ -16,12 +16,14 @@ class Exporter(abc.ABC):
         top_k: int,
         default_dir: str,
         dataset_type: DatasetType,
+        no_pred_export: bool,
     ) -> None:
         self.model: Models = model
         self.assertion_number: int = assertion_number
         self.top_k = top_k
         self.default_dir = default_dir
         self.dataset_type = dataset_type
+        self.no_pred_export = no_pred_export
 
     def __enter__(self) -> object:
         self.initialize()
@@ -83,8 +85,11 @@ class FileWriterExporter(Exporter):
         top_k: int,
         default_dir: str,
         dataset_type: DatasetType,
+        no_pred_export: bool,
     ) -> None:
-        super().__init__(model, assertion_number, top_k, default_dir, dataset_type)
+        super().__init__(
+            model, assertion_number, top_k, default_dir, dataset_type, no_pred_export
+        )
         self.prediction_file = None
         self.metric_file = None
         self.default_dir = default_dir
@@ -103,9 +108,10 @@ class FileWriterExporter(Exporter):
     def export_predictions(
         self, references: list[str], top_k_predictions: list[list[str]]
     ) -> None:
-        for ref, top_k in zip(references, top_k_predictions, strict=False):
-            csv_writer = csv.writer(self.prediction_file)
-            csv_writer.writerow([ref.replace("\n", ""), *top_k])
+        if self.prediction_file is not None:
+            for ref, top_k in zip(references, top_k_predictions, strict=False):
+                csv_writer = csv.writer(self.prediction_file)
+                csv_writer.writerow([ref.replace("\n", ""), *top_k])
 
     def export_metrics(self, metrics: dict[str, float]) -> None:
         json.dump(metrics, self.metric_file)
@@ -113,11 +119,13 @@ class FileWriterExporter(Exporter):
     def initialize(self) -> None:
         self.prediction_dir.mkdir(parents=True, exist_ok=True)
         self.metric_dir.mkdir(parents=True, exist_ok=True)
-        self.prediction_file = Path.open(self.prediction_file_path, mode="w")
+        if not self.no_pred_export:
+            self.prediction_file = Path.open(self.prediction_file_path, mode="w")
         self.metric_file = Path.open(self.metric_file_path, mode="w")
 
     def close(self) -> None:
-        self.prediction_file.close()
+        if not self.no_pred_export:
+            self.prediction_file.close()
         self.metric_file.close()
 
 
@@ -130,10 +138,19 @@ class CombinedExporter(Exporter):
         default_dir: str,
         dataset_type: DatasetType,
         exporters_str: str,
+        no_pred_export: bool,
     ) -> None:
-        super().__init__(model, assertion_number, top_k, default_dir, dataset_type)
+        super().__init__(
+            model, assertion_number, top_k, default_dir, dataset_type, no_pred_export
+        )
         self.exporters = _get_exporters_from_str(
-            exporters_str, model, assertion_number, top_k, default_dir, dataset_type
+            exporters_str,
+            model,
+            assertion_number,
+            top_k,
+            default_dir,
+            dataset_type,
+            no_pred_export,
         )
 
     def export_predictions(
@@ -162,10 +179,17 @@ def _get_exporters_from_str(
     top_k: int,
     default_dir: str,
     dataset_type: DatasetType,
+    no_pred_export: bool,
 ) -> set[Exporter]:
     return {
         _parse_exporter(
-            exporter, model, assertion_number, top_k, default_dir, dataset_type
+            exporter,
+            model,
+            assertion_number,
+            top_k,
+            default_dir,
+            dataset_type,
+            no_pred_export,
         )
         for exporter in exporters.split(":")
     }
@@ -178,15 +202,26 @@ def _parse_exporter(
     top_k: int,
     default_dir: str,
     dataset_type: DatasetType,
+    no_pred_export: bool,
 ) -> Exporter:
     match exporter:
         case "console":
             return ConsoleExporter(
-                model, assertion_number, top_k, default_dir, dataset_type
+                model,
+                assertion_number,
+                top_k,
+                default_dir,
+                dataset_type,
+                no_pred_export,
             )
         case "file":
             return FileWriterExporter(
-                model, assertion_number, top_k, default_dir, dataset_type
+                model,
+                assertion_number,
+                top_k,
+                default_dir,
+                dataset_type,
+                no_pred_export,
             )
     error_msg = f'The exporter "{exporter}" is not available.'
     raise NotImplementedError(error_msg)

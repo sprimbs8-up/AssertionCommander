@@ -77,6 +77,13 @@ def parse_arguments() -> argparse.Namespace:
         dest="type",
         help="Specifies the type or identifier of the model to be used. This argument is required.",
     )
+    parser.add_argument(
+        "--pred-file",
+        default=None,
+        type=str,
+        dest="pred_file",
+        help="Specifies the file for already created predictions.",
+    )
 
     return parser.parse_args()
 
@@ -93,6 +100,7 @@ def main(args: argparse.Namespace) -> int:
     exporters = args.exporter
     dataset_type = args.type
     export_dir = args.export_dir
+    pred_file = args.pred_file
     commander: AssertionCommander = AssertionCommander(
         model_url=model_url,
         model_name=model,
@@ -103,6 +111,7 @@ def main(args: argparse.Namespace) -> int:
         dataset_type=parse_type(dataset_type),
         root_dir=root_dir,
         export_dir=export_dir,
+        cached_predictions_file=pred_file,
     )
     commander.evaluate()
     return 0

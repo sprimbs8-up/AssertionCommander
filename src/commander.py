@@ -34,6 +34,7 @@ class AssertionCommander:
         dataset_type: DatasetType,
         root_dir: str,
         export_dir: str,
+        cached_predictions_file: str,
         metric_evaluators: MetricComputer = None,
         exporters: str = None,
     ) -> None:
@@ -52,10 +53,12 @@ class AssertionCommander:
             batch_size=self.batch_size,
             dataset=self.dataset_type,
             default_data_dir=self.root_dir,
+            cache_pred_dir=cached_predictions_file,
+            top_k=top_k,
         )
         if self.metric_evaluators is None:
             self.metric_evaluators = CombinedMetricComputer(self.top_k)
-
+        self.pred_export = cached_predictions_file is None
         self.exporters = CombinedExporter(
             model=self.model,
             assertion_number=self.assertion_number,
@@ -63,6 +66,7 @@ class AssertionCommander:
             default_dir=self.export_dir,
             dataset_type=self.dataset_type,
             exporters_str=exporters,
+            no_pred_export=not self.pred_export,
         )
 
     def _predict(self, input_strings: list[str], top_k: int) -> list[list[str]]:
@@ -109,8 +113,11 @@ class AssertionCommander:
                 progress_bar.set_description(
                     _get_metrics_for_bar(current_metrics), refresh=True
                 )
-                predictions = self._predict(inputs, self.top_k)
-                self._export_predictions(ref, predictions)
+                if self.pred_export:
+                    predictions = self._predict(inputs, self.top_k)
+                    self._export_predictions(ref, predictions)
+                else:
+                    predictions = inputs
                 self.metric_evaluators.add_to_batch(
                     references=ref, top_k_predictions_batch=predictions
                 )
