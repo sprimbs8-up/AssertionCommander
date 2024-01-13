@@ -106,7 +106,6 @@ class AtlasDataLoader(DataLoader):
                 strict=False,
             ),
             total=total,
-            leave=False,
             desc=f"Evaluating {self.model.name}-{self.assertion_number}",
         )
 
@@ -146,7 +145,6 @@ class CachedPredictionsDataLoader(DataLoader):
                 iter(lambda: tuple(islice(prediction_reader, self.batch_size)), ()),
             ),
             total=total,
-            leave=False,
             desc=f"Evaluating {self.model.name}-{self.assertion_number}",
         )
 
