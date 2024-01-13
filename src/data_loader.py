@@ -12,12 +12,12 @@ from src.models import Models
 
 class DataLoader(abc.ABC):
     def __init__(
-        self,
-        model: Models,
-        assertion_number: int,
-        batch_size: int,
-        default_data_dir: str,
-        dataset: DatasetType,
+            self,
+            model: Models,
+            assertion_number: int,
+            batch_size: int,
+            default_data_dir: str,
+            dataset: DatasetType,
     ) -> None:
         self.model = model
         self.assertion_number = assertion_number
@@ -47,37 +47,6 @@ class DataLoader(abc.ABC):
     @abc.abstractmethod
     def get_number_data_points(self) -> int:
         pass
-
-
-class AtlasDataLoader(DataLoader):
-    def __init__(
-        self,
-        model: Models,
-        assertion_number: int,
-        batch_size: int,
-        default_data_dir: str,
-        dataset: DatasetType,
-    ) -> None:
-        super().__init__(model, assertion_number, batch_size, default_data_dir, dataset)
-
-        self.references_file_path: Path = (
-            Path(self.default_data_dir)
-            / str(self.assertion_number)
-            / self.model.name
-            / self._get_dataset_type_dir()
-            / "assertLines.txt"
-        )
-        self.input_file_path: Path = (
-            Path(self.default_data_dir)
-            / str(self.assertion_number)
-            / self.model.name
-            / self._get_dataset_type_dir()
-            / "testMethods.txt"
-        )
-        self.input_file = None
-        self.ref_file = None
-        self.num_data_elements: int = self.get_number_data_points()
-
     def _get_dataset_type_dir(self) -> str:
         match self.dataset:
             case DatasetType.TEST:
@@ -86,6 +55,37 @@ class AtlasDataLoader(DataLoader):
                 return "training"
             case DatasetType.VALIDATION:
                 return "validation"
+
+class AtlasDataLoader(DataLoader):
+    def __init__(
+            self,
+            model: Models,
+            assertion_number: int,
+            batch_size: int,
+            default_data_dir: str,
+            dataset: DatasetType,
+    ) -> None:
+        super().__init__(model, assertion_number, batch_size, default_data_dir, dataset)
+
+        self.references_file_path: Path = (
+                Path(self.default_data_dir)
+                / str(self.assertion_number)
+                / self.model.name
+                / self._get_dataset_type_dir()
+                / "assertLines.txt"
+        )
+        self.input_file_path: Path = (
+                Path(self.default_data_dir)
+                / str(self.assertion_number)
+                / self.model.name
+                / self._get_dataset_type_dir()
+                / "testMethods.txt"
+        )
+        self.input_file = None
+        self.ref_file = None
+        self.num_data_elements: int = self.get_number_data_points()
+
+
 
     def get_number_data_points(self) -> int:
         with Path.open(self.input_file_path) as inputs:
@@ -114,16 +114,48 @@ class AtlasDataLoader(DataLoader):
         self.input_file.close()
 
 
+class TogaDataLoader(DataLoader):
+    def __init__(self, model: Models, assertion_number: int, batch_size: int, default_data_dir: str,
+                 dataset: DatasetType):
+        super().__init__(model, assertion_number, batch_size, default_data_dir, dataset)
+        self.assertion_file_path: Path = (
+                Path(self.default_data_dir)
+                / str(self.assertion_number)
+                / self.model.name
+                / "assertions"
+                / (self._get_dataset_type_dir()+".csv")
+        )
+        self.exception_file_path: Path = (
+                Path(self.default_data_dir)
+                / str(self.assertion_number)
+                / self.model.name
+                / "exceptions"
+                / (self._get_dataset_type_dir() + ".csv")
+        )
+
+    def load_files(self) -> None:
+        pass
+
+    def load_data_stepwise(self) -> tqdm:
+        pass
+
+    def close_files(self) -> None:
+        pass
+
+    def get_number_data_points(self) -> int:
+        pass
+
+
 class CachedPredictionsDataLoader(DataLoader):
     def __init__(
-        self,
-        model: Models,
-        assertion_number: int,
-        batch_size: int,
-        default_data_dir: str,
-        dataset: DatasetType,
-        cached_predictions_file: str,
-        top_k: int,
+            self,
+            model: Models,
+            assertion_number: int,
+            batch_size: int,
+            default_data_dir: str,
+            dataset: DatasetType,
+            cached_predictions_file: str,
+            top_k: int,
     ) -> None:
         super().__init__(model, assertion_number, batch_size, default_data_dir, dataset)
         self.cached_predictions_file = cached_predictions_file
@@ -151,7 +183,7 @@ class CachedPredictionsDataLoader(DataLoader):
     def _split(self, tuple_predictions):
         ref_pred_list = list(tuple_predictions)
         references = [ref[0] for ref in ref_pred_list]
-        predictions = [pred[1 : self.top_k + 1] for pred in ref_pred_list]
+        predictions = [pred[1: self.top_k + 1] for pred in ref_pred_list]
         return references, predictions
 
     def close_files(self) -> None:
@@ -163,13 +195,13 @@ class CachedPredictionsDataLoader(DataLoader):
 
 
 def build_data_loader(
-    model: Models,
-    assertion_number: int,
-    batch_size: int,
-    dataset: DatasetType,
-    default_data_dir: str,
-    cache_pred_dir: str,
-    top_k: int,
+        model: Models,
+        assertion_number: int,
+        batch_size: int,
+        dataset: DatasetType,
+        default_data_dir: str,
+        cache_pred_dir: str,
+        top_k: int,
 ) -> DataLoader:
     if cache_pred_dir is not None:
         return CachedPredictionsDataLoader(
