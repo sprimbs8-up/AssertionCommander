@@ -3,4 +3,5 @@ evaluation-data/
 /results/
 /results-dummy/
 src/__pycache__/
-/evaluation-data/
+/evaluation-data/**
+
