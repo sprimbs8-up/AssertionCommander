@@ -1,7 +1,6 @@
-evaluation-data/
+evaluation-data
 .idea/
 /results/
 /results-dummy/
 src/__pycache__/
-/evaluation-data/**
 
