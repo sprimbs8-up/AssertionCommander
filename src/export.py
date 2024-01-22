@@ -17,8 +17,7 @@ class Exporter(abc.ABC):
         default_dir: str,
         dataset_type: DatasetType,
         no_pred_export: bool,
-        raw_file_path: str
-
+        raw_file_path: str,
     ) -> None:
         self.model: Models = model
         self.assertion_number: int = assertion_number
@@ -88,10 +87,16 @@ class FileWriterExporter(Exporter):
         default_dir: str,
         dataset_type: DatasetType,
         no_pred_export: bool,
-        raw_file_path: str
+        raw_file_path: str,
     ) -> None:
         super().__init__(
-            model, assertion_number, top_k, default_dir, dataset_type, no_pred_export, raw_file_path
+            model,
+            assertion_number,
+            top_k,
+            default_dir,
+            dataset_type,
+            no_pred_export,
+            raw_file_path,
         )
         self.prediction_file = None
         self.metric_file = None
@@ -144,10 +149,16 @@ class CombinedExporter(Exporter):
         dataset_type: DatasetType,
         exporters_str: str,
         no_pred_export: bool,
-            raw_file: str,
+        raw_file: str,
     ) -> None:
         super().__init__(
-            model, assertion_number, top_k, default_dir, dataset_type, no_pred_export, raw_file
+            model,
+            assertion_number,
+            top_k,
+            default_dir,
+            dataset_type,
+            no_pred_export,
+            raw_file,
         )
         self.exporters = _get_exporters_from_str(
             exporters_str,
@@ -157,7 +168,7 @@ class CombinedExporter(Exporter):
             default_dir,
             dataset_type,
             no_pred_export,
-            raw_file
+            raw_file,
         )
 
     def export_predictions(
@@ -187,7 +198,7 @@ def _get_exporters_from_str(
     default_dir: str,
     dataset_type: DatasetType,
     no_pred_export: bool,
-        raw_file: str
+    raw_file: str,
 ) -> set[Exporter]:
     return {
         _parse_exporter(
@@ -198,7 +209,7 @@ def _get_exporters_from_str(
             default_dir,
             dataset_type,
             no_pred_export,
-            raw_file
+            raw_file,
         )
         for exporter in exporters.split(":")
     }
@@ -212,7 +223,7 @@ def _parse_exporter(
     default_dir: str,
     dataset_type: DatasetType,
     no_pred_export: bool,
-        raw_file: str
+    raw_file: str,
 ) -> Exporter:
     match exporter:
         case "console":
@@ -223,7 +234,7 @@ def _parse_exporter(
                 default_dir,
                 dataset_type,
                 no_pred_export,
-                raw_file
+                raw_file,
             )
         case "file":
             return FileWriterExporter(
@@ -233,7 +244,7 @@ def _parse_exporter(
                 default_dir,
                 dataset_type,
                 no_pred_export,
-                raw_file
+                raw_file,
             )
     error_msg = f'The exporter "{exporter}" is not available.'
     raise NotImplementedError(error_msg)

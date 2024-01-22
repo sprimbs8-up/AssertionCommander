@@ -69,7 +69,7 @@ class AssertionCommander:
             dataset_type=self.dataset_type,
             exporters_str=exporters,
             no_pred_export=not self.pred_export,
-            raw_file="raw" if raw_data else "abstract"
+            raw_file="raw" if raw_data else "abstract",
         )
 
     def _predict(self, input_strings: list[str], top_k: int) -> list[list[str]]:
