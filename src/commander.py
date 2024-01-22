@@ -69,6 +69,7 @@ class AssertionCommander:
             dataset_type=self.dataset_type,
             exporters_str=exporters,
             no_pred_export=not self.pred_export,
+            raw_file="raw" if raw_data else "abstract"
         )
 
     def _predict(self, input_strings: list[str], top_k: int) -> list[list[str]]:
@@ -115,15 +116,15 @@ class AssertionCommander:
         current_metrics = {}
         with self.data_loader, self.exporters:
             progress_bar = self.data_loader.load_data_stepwise()
-            for ref, inputs, optional in progress_bar:
+            for ref, inputs, *optional in progress_bar:
                 progress_bar.set_description(
                     _get_metrics_for_bar(current_metrics), refresh=True
                 )
                 if self.pred_export:
                     predictions = self._predict(inputs, self.top_k)
-                    if optional is not None:
+                    if optional is not None and len(optional) > 0:
                         predictions, ref = self._convert_to_raw_tokens(
-                            optional, predictions, ref
+                            optional[0], predictions, ref
                         )
                     self._export_predictions(ref, predictions)
                 else:
