@@ -1,5 +1,8 @@
 import abc
 import csv
+import json
+
+import pandas
 from itertools import islice
 from pathlib import Path
 from typing import Iterable, Any
@@ -47,6 +50,7 @@ class DataLoader(abc.ABC):
     @abc.abstractmethod
     def get_number_data_points(self) -> int:
         pass
+
     def _get_dataset_type_dir(self) -> str:
         match self.dataset:
             case DatasetType.TEST:
@@ -55,6 +59,7 @@ class DataLoader(abc.ABC):
                 return "training"
             case DatasetType.VALIDATION:
                 return "validation"
+
 
 class AtlasDataLoader(DataLoader):
     def __init__(
@@ -84,8 +89,6 @@ class AtlasDataLoader(DataLoader):
         self.input_file = None
         self.ref_file = None
         self.num_data_elements: int = self.get_number_data_points()
-
-
 
     def get_number_data_points(self) -> int:
         with Path.open(self.input_file_path) as inputs:
@@ -118,32 +121,45 @@ class TogaDataLoader(DataLoader):
     def __init__(self, model: Models, assertion_number: int, batch_size: int, default_data_dir: str,
                  dataset: DatasetType):
         super().__init__(model, assertion_number, batch_size, default_data_dir, dataset)
-        self.assertion_file_path: Path = (
+        self.toga_data_path: Path = (
                 Path(self.default_data_dir)
                 / str(self.assertion_number)
                 / self.model.name
-                / "assertions"
-                / (self._get_dataset_type_dir()+".csv")
-        )
-        self.exception_file_path: Path = (
-                Path(self.default_data_dir)
-                / str(self.assertion_number)
-                / self.model.name
-                / "exceptions"
+                / "combined"
                 / (self._get_dataset_type_dir() + ".csv")
         )
+        self.num_data_elements: int = self.get_number_data_points()
 
     def load_files(self) -> None:
-        pass
+        self.toga_file = Path.open(self.toga_data_path)
 
     def load_data_stepwise(self) -> tqdm:
-        pass
+        total = self.num_data_elements // self.batch_size
+        if self.num_data_elements % self.batch_size != 0:
+            total += 1
+        prediction_reader = csv.DictReader(self.toga_file, fieldnames=["idx", "fm", "test", "assertion", "docstring"], )
+        next(prediction_reader)
+        return tqdm(
+            map(
+                self._extract_references_and_inputs,
+                iter(lambda: tuple(islice(prediction_reader, self.batch_size)), ()),
+            ),
+            total=total,
+            desc=f"Evaluating {self.model.name}-{self.assertion_number}",
+        )
 
     def close_files(self) -> None:
-        pass
+        self.toga_file.close()
 
     def get_number_data_points(self) -> int:
-        pass
+        with Path.open(self.toga_data_path) as inputs:
+            return len(inputs.readlines()) - 1
+
+    def _extract_references_and_inputs(self, tuple_predictions):
+        pred_list = list(tuple_predictions)
+        references = [ref["assertion"] for ref in pred_list]
+        predictions = [ref["fm"]+ "[SEP]" + ref["test"] + "[SEP]" for ref in pred_list]
+        return references, predictions
 
 
 class CachedPredictionsDataLoader(DataLoader):
@@ -222,6 +238,12 @@ def build_data_loader(
                 dataset=dataset,
                 default_data_dir=default_data_dir,
             )
-        case Models.TOGA, Models.CODE_2_SEQ:
+        case Models.TOGA:
+            return TogaDataLoader(model=model,
+                                  assertion_number=assertion_number,
+                                  batch_size=batch_size,
+                                  dataset=dataset,
+                                  default_data_dir=default_data_dir, )
+        case Models.CODE_2_SEQ:
             raise NotImplementedError
     raise ValueError
