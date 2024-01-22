@@ -84,6 +84,7 @@ def parse_arguments() -> argparse.Namespace:
         dest="pred_file",
         help="Specifies the file for already created predictions.",
     )
+    parser.add_argument("--abstract", dest="abstract", action="store_true")
 
     return parser.parse_args()
 
@@ -101,6 +102,7 @@ def main(args: argparse.Namespace) -> int:
     dataset_type = args.type
     export_dir = args.export_dir
     pred_file = args.pred_file
+    raw_data = not args.abstract
     commander: AssertionCommander = AssertionCommander(
         model_url=model_url,
         model_name=model,
@@ -112,6 +114,7 @@ def main(args: argparse.Namespace) -> int:
         root_dir=root_dir,
         export_dir=export_dir,
         cached_predictions_file=pred_file,
+        raw_data=raw_data,
     )
     commander.evaluate()
     return 0

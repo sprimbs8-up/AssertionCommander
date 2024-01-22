@@ -35,6 +35,7 @@ class AssertionCommander:
         root_dir: str,
         export_dir: str,
         cached_predictions_file: str,
+        raw_data: bool,
         metric_evaluators: MetricComputer = None,
         exporters: str = None,
     ) -> None:
@@ -55,6 +56,7 @@ class AssertionCommander:
             default_data_dir=self.root_dir,
             cache_pred_dir=cached_predictions_file,
             top_k=top_k,
+            raw_data=raw_data,
         )
         if self.metric_evaluators is None:
             self.metric_evaluators = CombinedMetricComputer(self.top_k)
@@ -113,17 +115,53 @@ class AssertionCommander:
         current_metrics = {}
         with self.data_loader, self.exporters:
             progress_bar = self.data_loader.load_data_stepwise()
-            for ref, inputs in progress_bar:
+            for ref, inputs, optional in progress_bar:
                 progress_bar.set_description(
                     _get_metrics_for_bar(current_metrics), refresh=True
                 )
                 if self.pred_export:
                     predictions = self._predict(inputs, self.top_k)
+                    if optional is not None:
+                        predictions, ref = self._convert_to_raw_tokens(
+                            optional, predictions, ref
+                        )
                     self._export_predictions(ref, predictions)
                 else:
                     predictions = inputs
+
                 self.metric_evaluators.add_to_batch(
                     references=ref, top_k_predictions_batch=predictions
                 )
                 current_metrics = self.metric_evaluators.compute_metrics()
             self._export_metrics(current_metrics)
+
+    def _convert_to_raw_tokens(self, optional, predictions, ref):
+        raw_refs = []
+        raw_preds = []
+        for r, pred, optional_dict in zip(ref, predictions, optional):
+            ref_tokens = r.split()
+            pred_tokens = [
+                self._normalize_token_list(
+                    [self._normalize_token(pred) for pred in k_pred.split()]
+                )
+                for k_pred in pred
+            ]
+            refs = [optional_dict[t] if t in optional_dict else t for t in ref_tokens]
+            preds = [
+                [optional_dict[t] if t in optional_dict else t for t in top_k_pred]
+                for top_k_pred in pred_tokens
+            ]
+            raw_refs.append(" ".join(refs))
+            raw_preds.append([" ".join(p) for p in preds])
+        ref = raw_refs
+        predictions = raw_preds
+        return predictions, ref
+
+    def _normalize_token(self, token):
+        normalized_token = token
+        for character in [".", ","]:
+            normalized_token = f" {character} ".join(normalized_token.split(character))
+        return normalized_token
+
+    def _normalize_token_list(self, token_list):
+        return (" ".join(token_list)).split()
