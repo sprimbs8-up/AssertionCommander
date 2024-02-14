@@ -1,5 +1,6 @@
 import abc
 import json
+import os
 import subprocess
 
 import evaluate
@@ -159,8 +160,10 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
         flatten_prediction_batch = []
         for top_k_pred in top_k_predictions_batch:
             flatten_prediction_batch.extend(top_k_pred)
+        java_cmd = os.getenv("JAVA_HOME")
+        java_cmd = java_cmd if java_cmd is not None else "java"
         cmd = [
-            "java",
+            java_cmd,
             "-jar",
             "libs/assertions.jar",
             "check",

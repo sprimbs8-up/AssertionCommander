@@ -230,7 +230,7 @@ class AsserT5DataLoader(DataLoader):
         json_dict_list = [json.loads(row) for row in input_list]
         labels = [el["labels"] for el in json_dict_list]
         references = [el["inputIDs"] for el in json_dict_list]
-        dicts = [el["dict"] for el in json_dict_list]
+        dicts = [el["dict"] if "dict" in el else {} for el in json_dict_list]
         return labels, references, dicts
 
 
