@@ -12,6 +12,16 @@ from transformers import AutoTokenizer
 class MetricComputer(abc.ABC):
     def __init__(self, top_k: int) -> None:
         self.top_k = top_k
+        self.assertionTypeDict = {
+            "assertEquals": 0,
+            "assertNotEquals": 1,
+            "assertTrue": 2,
+            "assertFalse": 3,
+            "assertNull": 4,
+            "assertNotNull": 5,
+            "assertThrows": 6,
+            "TRY_CATCH": 7,
+        }
 
     @abc.abstractmethod
     def add_to_batch(
@@ -22,6 +32,23 @@ class MetricComputer(abc.ABC):
     @abc.abstractmethod
     def compute_metrics(self) -> dict[str, float]:
         pass
+    @staticmethod
+    def select_usable_number(possible_types: list[int], expected: int) -> int:
+        if expected in possible_types:
+            return expected
+
+        return possible_types[0]
+
+    def convert_assertion_list_to_number_list(self, assertion: list[str]) -> list[int]:
+        return [
+            self.convert_assertion_to_number(assert_type) for assert_type in assertion
+        ]
+
+    def convert_assertion_to_number(self, assertion: str) -> int:
+        if assertion in self.assertionTypeDict:
+            return self.assertionTypeDict[assertion]
+
+        return -1
 
 
 def _extract_assertion_types(assertion: list[str]) -> list[str]:
@@ -40,7 +67,8 @@ class CombinedMetricComputer(MetricComputer):
                 SyntacticCorrectnessMetricComputer(top_k),
                 AssertionTypeMetricComputer(top_k),
                 BleuMetricComputer(top_k),
-                MeanSquaredErrorComputer(top_k)
+                MeanSquaredErrorComputer(top_k),
+                ConditionalAccuracyComputer(top_k)
             ]
 
     def add_to_batch(
@@ -61,16 +89,6 @@ class CombinedMetricComputer(MetricComputer):
 class AssertionTypeMetricComputer(MetricComputer):
     def __init__(self, top_k: int) -> None:
         super().__init__(top_k)
-        self.assertionTypeDict = {
-            "assertEquals": 0,
-            "assertNotEquals": 1,
-            "assertTrue": 2,
-            "assertFalse": 3,
-            "assertNull": 4,
-            "assertNotNull": 5,
-            "assertThrows": 6,
-            "TRY_CATCH": 7,
-        }
         self.labels = list(range(len(self.assertionTypeDict)))
         self.predictions = []
         self.references = []
@@ -96,24 +114,6 @@ class AssertionTypeMetricComputer(MetricComputer):
         ]
         self.predictions.extend(pred_assertions_number)
         self.references.extend(ref_assertions_number)
-
-    @staticmethod
-    def select_usable_number(possible_types: list[int], expected: int) -> int:
-        if expected in possible_types:
-            return expected
-
-        return possible_types[0]
-
-    def convert_assertion_list_to_number_list(self, assertion: list[str]) -> list[int]:
-        return [
-            self.convert_assertion_to_number(assert_type) for assert_type in assertion
-        ]
-
-    def convert_assertion_to_number(self, assertion: str) -> int:
-        if assertion in self.assertionTypeDict:
-            return self.assertionTypeDict[assertion]
-
-        return -1
 
     def compute_metrics(self) -> dict[str, float]:
         return {
@@ -270,3 +270,48 @@ class MeanSquaredErrorComputer(MetricComputer):
             total_length += length
             current_mse += length * mse
         return {"rmse_loss": current_mse / total_length}
+
+
+class ConditionalAccuracyComputer(MetricComputer):
+    def __init__(self, top_k: int) -> None:
+        super().__init__(top_k)
+        self.assertionTypes = {"assertEquals", "assertNotEquals", "assertTrue", "assertFalse", "assertNull",
+                               "assertNotNull", "assertThrows", "TRY_CATCH" }
+        self.correct_predictions: dict[str, float] = {type: 0 for type in self.assertionTypes}
+        self.total: dict[str, float] = {type: 0 for type in self.assertionTypes}
+
+    def compute_metrics(self) -> dict[str, any]:
+        accuracy = {assert_type:  self.correct_predictions[assert_type] / self.total[assert_type] if self.total[assert_type] > 0 else 0 for assert_type in self.assertionTypes}
+        return {"cond_acc": accuracy}
+
+    def add_to_batch(
+            self, references: list[str], top_k_predictions_batch: list[list[str]]
+    ) -> None:
+        ref_assertion_code_part = [assert_statement.split() for assert_statement in references]
+        pred_assertions = [
+            [assert_statement.split() for assert_statement in top_k] for top_k in top_k_predictions_batch
+        ]
+        for ref, preds in zip(ref_assertion_code_part, pred_assertions):
+            ref_assertion, *ref_code = ref
+            stripped_ref_assert = ref_assertion.strip()
+            suitable_pred = self._get_suitable_prediction(preds, ref_code, stripped_ref_assert)
+            if suitable_pred is None:
+                continue
+            pred_assertion, *pred_code = suitable_pred
+            self.total[pred_assertion.strip()] += 1
+            if _clean("".join(pred_code)) == _clean("".join(ref_code)):
+                self.correct_predictions[pred_assertion.strip()] += 1
+
+    def _get_suitable_prediction(self, preds, ref_code, stripped_ref_assert):
+        return_pred = None
+        for pred in preds:
+            pred_assertion, *pred_code = pred
+            stripped_pred_assert = pred_assertion.strip()
+            if stripped_ref_assert == stripped_pred_assert and stripped_ref_assert in self.assertionTypes:
+                if return_pred is None:
+                    return_pred = pred
+                if _clean("".join(ref_code)) == _clean("".join(pred_code)):
+                    return pred
+        return return_pred
+
+

@@ -10,14 +10,14 @@ from src.models import Models
 
 class Exporter(abc.ABC):
     def __init__(
-        self,
-        model: Models,
-        assertion_number: int,
-        top_k: int,
-        default_dir: str,
-        dataset_type: DatasetType,
-        no_pred_export: bool,
-        raw_file_path: str,
+            self,
+            model: Models,
+            assertion_number: int,
+            top_k: int,
+            default_dir: str,
+            dataset_type: DatasetType,
+            no_pred_export: bool,
+            raw_file_path: str,
     ) -> None:
         self.model: Models = model
         self.assertion_number: int = assertion_number
@@ -35,7 +35,7 @@ class Exporter(abc.ABC):
 
     @abc.abstractmethod
     def export_predictions(
-        self, references: list[str], top_k_predictions: list[list[str]]
+            self, references: list[str], top_k_predictions: list[list[str]]
     ) -> None:
         pass
 
@@ -54,21 +54,30 @@ class Exporter(abc.ABC):
 
 class ConsoleExporter(Exporter):
     def export_predictions(
-        self, references: list[str], top_k_predictions: list[list[str]]
+            self, references: list[str], top_k_predictions: list[list[str]]
     ) -> None:
         pass
 
-    def export_metrics(self, metrics: dict[str, float]) -> None:
+    def export_metrics(self, metrics: dict[str, any]) -> None:
         logging.info("=" * 100)
         logging.info("Metrics:")
         maximal_key = max([len(key) for key in metrics])
         for metric in metrics:
-            logging.info(
-                " - %s:%s%s",
-                metric,
-                " " * (maximal_key - len(metric) + 1),
-                metrics[metric],
-            )
+            if type(metrics[metric]) is dict:
+                maximal_key_metric = max([len(key) for key in metrics[metric]])
+                metric_dict = metrics[metric]
+                logging.info(" - %s:", metric, )
+                for m in metric_dict:
+                    logging.info("   + %s:%s%s", m,                    " " * (maximal_key_metric - len(m) + 1),metric_dict[m] )
+            else:
+                logging.info(
+                    " - %s:%s%s",
+                    metric,
+                    " " * (maximal_key - len(metric) + 1),
+                    metrics[metric],
+                    )
+
+
         logging.info("=" * 100)
 
     def initialize(self) -> None:
@@ -80,14 +89,14 @@ class ConsoleExporter(Exporter):
 
 class FileWriterExporter(Exporter):
     def __init__(
-        self,
-        model: Models,
-        assertion_number: int,
-        top_k: int,
-        default_dir: str,
-        dataset_type: DatasetType,
-        no_pred_export: bool,
-        raw_file_path: str,
+            self,
+            model: Models,
+            assertion_number: int,
+            top_k: int,
+            default_dir: str,
+            dataset_type: DatasetType,
+            no_pred_export: bool,
+            raw_file_path: str,
     ) -> None:
         super().__init__(
             model,
@@ -102,21 +111,21 @@ class FileWriterExporter(Exporter):
         self.metric_file = None
         self.default_dir = default_dir
         self.base_path: Path = (
-            Path(self.default_dir) / str(self.assertion_number) / self.model.name
+                Path(self.default_dir) / str(self.assertion_number) / self.model.name
         )
         if raw_file_path is not None:
             self.base_path = self.base_path / raw_file_path
         self.prediction_dir: Path = self.base_path / "predictions"
         self.prediction_file_path: Path = (
-            self.prediction_dir / f"{self.dataset_type.type_name}_top-{top_k}.csv"
+                self.prediction_dir / f"{self.dataset_type.type_name}_top-{top_k}.csv"
         )
         self.metric_dir: Path = self.base_path / "metrics"
         self.metric_file_path: Path = (
-            self.metric_dir / f"{self.dataset_type.type_name}_top-{top_k}.json"
+                self.metric_dir / f"{self.dataset_type.type_name}_top-{top_k}.json"
         )
 
     def export_predictions(
-        self, references: list[str], top_k_predictions: list[list[str]]
+            self, references: list[str], top_k_predictions: list[list[str]]
     ) -> None:
         if self.prediction_file is not None:
             for ref, top_k in zip(references, top_k_predictions, strict=False):
@@ -141,15 +150,15 @@ class FileWriterExporter(Exporter):
 
 class CombinedExporter(Exporter):
     def __init__(
-        self,
-        model: Models,
-        assertion_number: int,
-        top_k: int,
-        default_dir: str,
-        dataset_type: DatasetType,
-        exporters_str: str,
-        no_pred_export: bool,
-        raw_file: str,
+            self,
+            model: Models,
+            assertion_number: int,
+            top_k: int,
+            default_dir: str,
+            dataset_type: DatasetType,
+            exporters_str: str,
+            no_pred_export: bool,
+            raw_file: str,
     ) -> None:
         super().__init__(
             model,
@@ -172,7 +181,7 @@ class CombinedExporter(Exporter):
         )
 
     def export_predictions(
-        self, references: list[str], top_k_predictions: list[list[str]]
+            self, references: list[str], top_k_predictions: list[list[str]]
     ) -> None:
         for exporter in self.exporters:
             exporter.export_predictions(references, top_k_predictions)
@@ -191,14 +200,14 @@ class CombinedExporter(Exporter):
 
 
 def _get_exporters_from_str(
-    exporters: str,
-    model: Models,
-    assertion_number: int,
-    top_k: int,
-    default_dir: str,
-    dataset_type: DatasetType,
-    no_pred_export: bool,
-    raw_file: str,
+        exporters: str,
+        model: Models,
+        assertion_number: int,
+        top_k: int,
+        default_dir: str,
+        dataset_type: DatasetType,
+        no_pred_export: bool,
+        raw_file: str,
 ) -> set[Exporter]:
     return {
         _parse_exporter(
@@ -216,14 +225,14 @@ def _get_exporters_from_str(
 
 
 def _parse_exporter(
-    exporter: str,
-    model: Models,
-    assertion_number: int,
-    top_k: int,
-    default_dir: str,
-    dataset_type: DatasetType,
-    no_pred_export: bool,
-    raw_file: str,
+        exporter: str,
+        model: Models,
+        assertion_number: int,
+        top_k: int,
+        default_dir: str,
+        dataset_type: DatasetType,
+        no_pred_export: bool,
+        raw_file: str,
 ) -> Exporter:
     match exporter:
         case "console":
