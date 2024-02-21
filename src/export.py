@@ -18,6 +18,7 @@ class Exporter(abc.ABC):
             dataset_type: DatasetType,
             no_pred_export: bool,
             raw_file_path: str,
+            epoch: str,
     ) -> None:
         self.model: Models = model
         self.assertion_number: int = assertion_number
@@ -25,6 +26,7 @@ class Exporter(abc.ABC):
         self.default_dir = default_dir
         self.dataset_type = dataset_type
         self.no_pred_export = no_pred_export
+        self.epoch = epoch
 
     def __enter__(self) -> object:
         self.initialize()
@@ -60,7 +62,8 @@ class ConsoleExporter(Exporter):
 
     def export_metrics(self, metrics: dict[str, any]) -> None:
         logging.info("=" * 100)
-        logging.info("Metrics:")
+        epoch_text = f"(Epoch {self.epoch})" if self.epoch is not None else ""
+        logging.info("Metrics: %s", epoch_text)
         maximal_key = max([len(key) for key in metrics])
         for metric in metrics:
             if type(metrics[metric]) is dict:
@@ -97,6 +100,7 @@ class FileWriterExporter(Exporter):
             dataset_type: DatasetType,
             no_pred_export: bool,
             raw_file_path: str,
+            epoch:str
     ) -> None:
         super().__init__(
             model,
@@ -106,6 +110,7 @@ class FileWriterExporter(Exporter):
             dataset_type,
             no_pred_export,
             raw_file_path,
+            epoch
         )
         self.prediction_file = None
         self.metric_file = None
@@ -115,13 +120,14 @@ class FileWriterExporter(Exporter):
         )
         if raw_file_path is not None:
             self.base_path = self.base_path / raw_file_path
+        appendix: str = f"epoch-{'%02d' % int(self.epoch)}." if self.epoch is not None else ""
         self.prediction_dir: Path = self.base_path / "predictions"
         self.prediction_file_path: Path = (
-                self.prediction_dir / f"{self.dataset_type.type_name}_top-{top_k}.csv"
+                self.prediction_dir / f"{appendix}{self.dataset_type.type_name}_top-{top_k}.csv"
         )
         self.metric_dir: Path = self.base_path / "metrics"
         self.metric_file_path: Path = (
-                self.metric_dir / f"{self.dataset_type.type_name}_top-{top_k}.json"
+                self.metric_dir / f"{appendix}{self.dataset_type.type_name}_top-{top_k}.json"
         )
 
     def export_predictions(
@@ -159,6 +165,7 @@ class CombinedExporter(Exporter):
             exporters_str: str,
             no_pred_export: bool,
             raw_file: str,
+            epoch: str
     ) -> None:
         super().__init__(
             model,
@@ -168,6 +175,7 @@ class CombinedExporter(Exporter):
             dataset_type,
             no_pred_export,
             raw_file,
+            epoch
         )
         self.exporters = _get_exporters_from_str(
             exporters_str,
@@ -178,6 +186,7 @@ class CombinedExporter(Exporter):
             dataset_type,
             no_pred_export,
             raw_file,
+            epoch,
         )
 
     def export_predictions(
@@ -208,6 +217,7 @@ def _get_exporters_from_str(
         dataset_type: DatasetType,
         no_pred_export: bool,
         raw_file: str,
+        epoch: str
 ) -> set[Exporter]:
     return {
         _parse_exporter(
@@ -219,6 +229,7 @@ def _get_exporters_from_str(
             dataset_type,
             no_pred_export,
             raw_file,
+            epoch
         )
         for exporter in exporters.split(":")
     }
@@ -233,6 +244,7 @@ def _parse_exporter(
         dataset_type: DatasetType,
         no_pred_export: bool,
         raw_file: str,
+        epoch: str
 ) -> Exporter:
     match exporter:
         case "console":
@@ -244,6 +256,7 @@ def _parse_exporter(
                 dataset_type,
                 no_pred_export,
                 raw_file,
+                epoch,
             )
         case "file":
             return FileWriterExporter(
@@ -254,6 +267,7 @@ def _parse_exporter(
                 dataset_type,
                 no_pred_export,
                 raw_file,
+                epoch
             )
     error_msg = f'The exporter "{exporter}" is not available.'
     raise NotImplementedError(error_msg)

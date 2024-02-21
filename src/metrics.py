@@ -1,8 +1,9 @@
 import abc
 import json
+import math
 import os
 import subprocess
-from sklearn.metrics import f1_score, precision_score, recall_score, root_mean_squared_error
+from sklearn.metrics import f1_score, precision_score, recall_score, mean_squared_error
 
 import evaluate
 from nltk.translate.bleu_score import sentence_bleu
@@ -261,15 +262,15 @@ class MeanSquaredErrorComputer(MetricComputer):
             padding="max_length",
             return_tensors="pt",
         )["input_ids"].numpy().tolist()
-        self.current_mse_list.append((len(references), root_mean_squared_error(tok_ref, tok_pred)))
+        self.current_mse_list.append((len(references), mean_squared_error(tok_ref, tok_pred)))
 
     def compute_metrics(self) -> dict[str, float]:
         current_mse = 0.0
         total_length = 0
         for length, mse in self.current_mse_list:
             total_length += length
-            current_mse += length * mse
-        return {"rmse_loss": current_mse / total_length}
+            current_mse += length * mse 
+        return {"rmse_loss": math.sqrt(current_mse / total_length)}
 
 
 class ConditionalAccuracyComputer(MetricComputer):
