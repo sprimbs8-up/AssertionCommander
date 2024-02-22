@@ -1,0 +1,1 @@
+poetry run python main.py --model asserT5 --batch-size 32 --top-k 1 --number-assertions 1 --root-dir evaluation-data --export-dir master-thesis-results/rq4/ --type $2 --model-url http://localhost:$1 --epoch $3
