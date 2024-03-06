@@ -76,11 +76,12 @@ class AtlasDataLoader(DataLoader):
         super().__init__(
             model, assertion_number, batch_size, default_data_dir, dataset, raw_set
         )
-
+        type_dir = "raw" if raw_set else "abstract"
         self.references_file_path: Path = (
             Path(self.default_data_dir)
             / str(self.assertion_number)
             / self.model.name
+            / type_dir
             / self._get_dataset_type_dir()
             / "assertLines.txt"
         )
@@ -88,10 +89,20 @@ class AtlasDataLoader(DataLoader):
             Path(self.default_data_dir)
             / str(self.assertion_number)
             / self.model.name
+            / type_dir
             / self._get_dataset_type_dir()
             / "testMethods.txt"
         )
+        self.abstract_dict_file: Path = (
+            Path(self.default_data_dir)
+            / str(self.assertion_number)
+            / self.model.name
+            / type_dir
+            / self._get_dataset_type_dir()
+            / "dict.jsonl"
+        ) if not raw_set else None
         self.input_file = None
+        self.dict_file = None
         self.ref_file = None
         self.num_data_elements: int = self.get_number_data_points()
 
@@ -102,24 +113,42 @@ class AtlasDataLoader(DataLoader):
     def load_files(self) -> None:
         self.ref_file = Path.open(self.references_file_path)
         self.input_file = Path.open(self.input_file_path)
+        if not self.raw_set:
+            self.dict_file = Path.open(self.abstract_dict_file)
+
 
     def load_data_stepwise(self) -> tqdm:
         total = self.num_data_elements // self.batch_size
         if self.num_data_elements % self.batch_size != 0:
             total += 1
-        return tqdm(
-            zip(
-                iter(lambda: tuple(islice(self.ref_file, self.batch_size)), ()),
-                iter(lambda: tuple(islice(self.input_file, self.batch_size)), ()),
-                strict=False,
-            ),
-            total=total,
-            desc=f"Evaluating {self.model.name}-{self.assertion_number}",
-        )
-
+        if self.raw_set:
+            return tqdm(
+                zip(
+                    iter(lambda: tuple(islice(self.ref_file, self.batch_size)), ()),
+                    iter(lambda: tuple(islice(self.input_file, self.batch_size)), ()),
+                    strict=False,
+                ),
+                total=total,
+                desc=f"Evaluating {self.model.name}-{self.assertion_number}",
+            )
+        else:
+            return tqdm(
+                zip(
+                    iter(lambda: tuple(islice(self.ref_file, self.batch_size)), ()),
+                    iter(lambda: tuple(islice(self.input_file, self.batch_size)), ()),
+                    map(self.line_to_dict, iter(lambda: tuple(islice(self.dict_file, self.batch_size)), ())),
+                    strict=False,
+                ),
+                total=total,
+                desc=f"Evaluating {self.model.name}-{self.assertion_number}",
+            )
+    def line_to_dict(self, line):
+        return [json.loads(l) for l in line]
     def close_files(self) -> None:
         self.ref_file.close()
         self.input_file.close()
+        if self.dict_file is not None:
+            self.dict_file.close()
 
 
 class TogaDataLoader(DataLoader):
@@ -261,7 +290,7 @@ class CachedPredictionsDataLoader(DataLoader):
         total = self.num_data_elements // self.batch_size
         if self.num_data_elements % self.batch_size != 0:
             total += 1
-        prediction_reader = csv.reader(self.predictions_file)
+        prediction_reader = csv.reader(x.replace('\0', '') for x in self.predictions_file)
         return tqdm(
             map(
                 self._split,

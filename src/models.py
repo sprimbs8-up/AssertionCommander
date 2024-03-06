@@ -19,6 +19,7 @@ class Models(Enum):
     TOGA = "toga"
     CODE_2_SEQ = "code2seq"
     ASSERT5 = "asserT5"
+    GPT = "gpt"
 
 
 def parse_model(model_string: str) -> Models | None:

@@ -1,5 +1,6 @@
 import abc
 import json
+import logging
 import math
 import os
 import subprocess
@@ -53,7 +54,7 @@ class MetricComputer(abc.ABC):
 
 
 def _extract_assertion_types(assertion: list[str]) -> list[str]:
-    return [assert_statement.split()[0] for assert_statement in assertion]
+    return list(map(lambda stmt: stmt[0] if len(stmt)>0 else None, map(lambda stmt: stmt.split(), assertion)))
 
 
 class CombinedMetricComputer(MetricComputer):
@@ -169,7 +170,17 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
             "--codes",
             json.dumps(flatten_prediction_batch),
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        except OSError:
+            if len(top_k_predictions_batch)>1:
+                # If a prediction was not handleable by the java tool, try each prediction alone.
+                for batch in top_k_predictions_batch:
+                    self._compute_syntactic_correct_predictions([batch])
+            else:
+                # Ignore this case.
+                logging.info("Found non convertable batch.")
+            return
         if result.stderr is not None and result.stderr != "":
             print(result.stderr)
         list_res = json.loads(result.stdout.strip())
@@ -269,7 +280,7 @@ class MeanSquaredErrorComputer(MetricComputer):
         total_length = 0
         for length, mse in self.current_mse_list:
             total_length += length
-            current_mse += length * mse 
+            current_mse += length * mse
         return {"rmse_loss": math.sqrt(current_mse / total_length)}
 
 
@@ -306,6 +317,8 @@ class ConditionalAccuracyComputer(MetricComputer):
     def _get_suitable_prediction(self, preds, ref_code, stripped_ref_assert):
         return_pred = None
         for pred in preds:
+            if len(pred) == 0:
+                continue
             pred_assertion, *pred_code = pred
             stripped_pred_assert = pred_assertion.strip()
             if stripped_ref_assert == stripped_pred_assert and stripped_ref_assert in self.assertionTypes:
