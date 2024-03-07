@@ -123,7 +123,7 @@ def main(args: argparse.Namespace) -> int:
         export_dir=export_dir,
         cached_predictions_file=pred_file,
         raw_data=raw_data,
-        epoch=epoch
+        epoch=epoch,
     )
     commander.evaluate()
     return 0

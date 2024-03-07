@@ -25,20 +25,20 @@ def _get_metrics_for_bar(metrics: dict[str, float]) -> str:
 
 class AssertionCommander:
     def __init__(
-            self,
-            model_url: str,
-            model_name: str,
-            batch_size: int,
-            top_k: int,
-            assertion_number: int,
-            dataset_type: DatasetType,
-            root_dir: str,
-            export_dir: str,
-            cached_predictions_file: str,
-            raw_data: bool,
-            epoch: str,
-            metric_evaluators: MetricComputer = None,
-            exporters: str = None,
+        self,
+        model_url: str,
+        model_name: str,
+        batch_size: int,
+        top_k: int,
+        assertion_number: int,
+        dataset_type: DatasetType,
+        root_dir: str,
+        export_dir: str,
+        cached_predictions_file: str,
+        raw_data: bool,
+        epoch: str,
+        metric_evaluators: MetricComputer = None,
+        exporters: str = None,
     ) -> None:
         self.model_url: str = model_url
         self.model: Models = parse_model(model_name)
@@ -72,7 +72,7 @@ class AssertionCommander:
             exporters_str=exporters,
             no_pred_export=not self.pred_export,
             raw_file="raw" if raw_data else "abstract",
-            epoch=self.epoch
+            epoch=self.epoch,
         )
 
     def _predict(self, input_strings: list[str], top_k: int) -> list[list[str]]:
@@ -106,7 +106,7 @@ class AssertionCommander:
         return text.startswith("y")
 
     def _export_predictions(
-            self, expected: list[str], top_k_predictions: list[list[str]]
+        self, expected: list[str], top_k_predictions: list[list[str]]
     ) -> None:
         self.exporters.export_predictions(
             references=expected, top_k_predictions=top_k_predictions
@@ -120,7 +120,9 @@ class AssertionCommander:
             prediction_response = requests.get(url=self.model_url + "/epoch")
             server_epoch = prediction_response.json()
             if server_epoch != int(self.epoch):
-                logging.warning("The epochs from the server and the given epoch are different. Stopping Evaluation.")
+                logging.warning(
+                    "The epochs from the server and the given epoch are different. Stopping Evaluation."
+                )
                 logging.warning("Server Epoch: %s", server_epoch)
                 logging.warning("Config Epoch: %s", self.epoch)
                 return False

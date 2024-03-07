@@ -4,36 +4,42 @@ import logging
 import math
 import os
 import subprocess
+
+import numpy as np
 from sklearn.metrics import f1_score, precision_score, recall_score, mean_squared_error
 
 import evaluate
 from nltk.translate.bleu_score import sentence_bleu
 from transformers import AutoTokenizer
+from bidict import bidict
 
 
 class MetricComputer(abc.ABC):
     def __init__(self, top_k: int) -> None:
         self.top_k = top_k
-        self.assertionTypeDict = {
-            "assertEquals": 0,
-            "assertNotEquals": 1,
-            "assertTrue": 2,
-            "assertFalse": 3,
-            "assertNull": 4,
-            "assertNotNull": 5,
-            "assertThrows": 6,
-            "TRY_CATCH": 7,
-        }
+        self.assertionTypeDict = bidict(
+            {
+                "assertEquals": 0,
+                "assertNotEquals": 1,
+                "assertTrue": 2,
+                "assertFalse": 3,
+                "assertNull": 4,
+                "assertNotNull": 5,
+                "assertThrows": 6,
+                "TRY_CATCH": 7,
+            }
+        )
 
     @abc.abstractmethod
     def add_to_batch(
-            self, references: list[str], top_k_predictions_batch: list[list[str]]
+        self, references: list[str], top_k_predictions_batch: list[list[str]]
     ) -> None:
         pass
 
     @abc.abstractmethod
     def compute_metrics(self) -> dict[str, float]:
         pass
+
     @staticmethod
     def select_usable_number(possible_types: list[int], expected: int) -> int:
         if expected in possible_types:
@@ -54,12 +60,17 @@ class MetricComputer(abc.ABC):
 
 
 def _extract_assertion_types(assertion: list[str]) -> list[str]:
-    return list(map(lambda stmt: stmt[0] if len(stmt)>0 else None, map(lambda stmt: stmt.split(), assertion)))
+    return list(
+        map(
+            lambda stmt: stmt[0] if len(stmt) > 0 else None,
+            map(lambda stmt: stmt.split(), assertion),
+        )
+    )
 
 
 class CombinedMetricComputer(MetricComputer):
     def __init__(
-            self, top_k: int, metric_computers: list[MetricComputer] = None
+        self, top_k: int, metric_computers: list[MetricComputer] = None
     ) -> None:
         super().__init__(top_k)
         self.metric_computers = metric_computers
@@ -70,11 +81,11 @@ class CombinedMetricComputer(MetricComputer):
                 AssertionTypeMetricComputer(top_k),
                 BleuMetricComputer(top_k),
                 MeanSquaredErrorComputer(top_k),
-                ConditionalAccuracyComputer(top_k)
+                ConditionalAccuracyComputer(top_k),
             ]
 
     def add_to_batch(
-            self, references: list[str], top_k_predictions_batch: list[list[str]]
+        self, references: list[str], top_k_predictions_batch: list[list[str]]
     ) -> None:
         for computer in self.metric_computers:
             computer.add_to_batch(
@@ -96,7 +107,7 @@ class AssertionTypeMetricComputer(MetricComputer):
         self.references = []
 
     def add_to_batch(
-            self, references: list[str], top_k_predictions_batch: list[list[str]]
+        self, references: list[str], top_k_predictions_batch: list[list[str]]
     ) -> None:
         ref_assertions = _extract_assertion_types(references)
         pred_assertions = [
@@ -118,16 +129,62 @@ class AssertionTypeMetricComputer(MetricComputer):
         self.references.extend(ref_assertions_number)
 
     def compute_metrics(self) -> dict[str, float]:
+        labels = list(self.assertionTypeDict.values())
         return {
-            "type_precision": precision_score(
-                self.references, self.predictions, average="macro", zero_division=0.0
+            "type_precision_total": precision_score(
+                self.references,
+                self.predictions,
+                average="macro",
+                labels=labels,
+                zero_division=0.0,
             ),
-            "type_recall": recall_score(
-                self.references, self.predictions, average="macro", zero_division=0.0
+            "type_recall_total": recall_score(
+                self.references,
+                self.predictions,
+                average="macro",
+                labels=labels,
+                zero_division=0.0,
             ),
-            "type_f1": f1_score(
-                self.references, self.predictions, average="macro", zero_division=0.0
+            "type_f1_total": f1_score(
+                self.references,
+                self.predictions,
+                average="macro",
+                labels=labels,
+                zero_division=0.0,
             ),
+            "type_precision_detailed": self._convert_to_dict(
+                precision_score(
+                    self.references,
+                    self.predictions,
+                    average=None,
+                    labels=labels,
+                    zero_division=0.0,
+                )
+            ),
+            "type_recall_detailed": self._convert_to_dict(
+                recall_score(
+                    self.references,
+                    self.predictions,
+                    average=None,
+                    labels=labels,
+                    zero_division=0.0,
+                )
+            ),
+            "type_f1_detailed": self._convert_to_dict(
+                f1_score(
+                    self.references,
+                    self.predictions,
+                    average=None,
+                    labels=labels,
+                    zero_division=0.0,
+                )
+            ),
+        }
+
+    def _convert_to_dict(self, array: np.ndarray) -> dict[str, float]:
+        return {
+            self.assertionTypeDict.inverse[idx]: float(value)
+            for idx, value in enumerate(array)
         }
 
 
@@ -148,14 +205,14 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
         }
 
     def add_to_batch(
-            self, references: list[str], top_k_predictions_batch: list[list[str]]
+        self, references: list[str], top_k_predictions_batch: list[list[str]]
     ) -> None:
         super().add_to_batch(references, top_k_predictions_batch)
         self._compute_syntactic_correct_predictions(top_k_predictions_batch)
         self.total += len(top_k_predictions_batch)
 
     def _compute_syntactic_correct_predictions(
-            self, top_k_predictions_batch: list[list[str]]
+        self, top_k_predictions_batch: list[list[str]]
     ) -> None:
         flatten_prediction_batch = []
         for top_k_pred in top_k_predictions_batch:
@@ -173,7 +230,7 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, check=False)
         except OSError:
-            if len(top_k_predictions_batch)>1:
+            if len(top_k_predictions_batch) > 1:
                 # If a prediction was not handleable by the java tool, try each prediction alone.
                 for batch in top_k_predictions_batch:
                     self._compute_syntactic_correct_predictions([batch])
@@ -186,7 +243,7 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
         list_res = json.loads(result.stdout.strip())
 
         groups = [
-            list_res[i: i + self.top_k] for i in range(0, len(list_res), self.top_k)
+            list_res[i : i + self.top_k] for i in range(0, len(list_res), self.top_k)
         ]
         if len(top_k_predictions_batch) == len(groups):
             self.syntactic_correct += sum([1 if any(res) else 0 for res in groups])
@@ -213,12 +270,12 @@ class AccuracyMetricComputer(MetricComputer):
         return {"accuracy": accuracy}
 
     def add_to_batch(
-            self, references: list[str], top_k_predictions_batch: list[list[str]]
+        self, references: list[str], top_k_predictions_batch: list[list[str]]
     ) -> None:
         self._accuracy(references, top_k_predictions_batch)
 
     def _accuracy(
-            self, references: list[str], top_k_predictions_batch: list[list[str]]
+        self, references: list[str], top_k_predictions_batch: list[list[str]]
     ) -> None:
         equality = [
             _clean(r) in _clean_list(p)
@@ -235,7 +292,7 @@ class BleuMetricComputer(MetricComputer):
         self.bleu_scores: list[float] = []
 
     def add_to_batch(
-            self, references: list[str], top_k_predictions_batch: list[list[str]]
+        self, references: list[str], top_k_predictions_batch: list[list[str]]
     ) -> None:
         for ref, top_k_preds in zip(references, top_k_predictions_batch, strict=False):
             top_k_bleu_score = max(
@@ -258,22 +315,34 @@ class MeanSquaredErrorComputer(MetricComputer):
         self.tokenizer = AutoTokenizer.from_pretrained("Salesforce/codet5-large")
         self.max_seq_length = 64
 
-    def add_to_batch(self, references: list[str], top_k_predictions_batch: list[list[str]]) -> None:
-        tok_ref = self.tokenizer(
-            references,
-            truncation=True,
-            max_length=self.max_seq_length,
-            padding="max_length",
-            return_tensors="pt",
-        )["input_ids"].numpy().tolist()
-        tok_pred = self.tokenizer(
-            [top_k[0] for top_k in top_k_predictions_batch],
-            truncation=True,
-            max_length=self.max_seq_length,
-            padding="max_length",
-            return_tensors="pt",
-        )["input_ids"].numpy().tolist()
-        self.current_mse_list.append((len(references), mean_squared_error(tok_ref, tok_pred)))
+    def add_to_batch(
+        self, references: list[str], top_k_predictions_batch: list[list[str]]
+    ) -> None:
+        tok_ref = (
+            self.tokenizer(
+                references,
+                truncation=True,
+                max_length=self.max_seq_length,
+                padding="max_length",
+                return_tensors="pt",
+            )["input_ids"]
+            .numpy()
+            .tolist()
+        )
+        tok_pred = (
+            self.tokenizer(
+                [top_k[0] for top_k in top_k_predictions_batch],
+                truncation=True,
+                max_length=self.max_seq_length,
+                padding="max_length",
+                return_tensors="pt",
+            )["input_ids"]
+            .numpy()
+            .tolist()
+        )
+        self.current_mse_list.append(
+            (len(references), mean_squared_error(tok_ref, tok_pred))
+        )
 
     def compute_metrics(self) -> dict[str, float]:
         current_mse = 0.0
@@ -287,26 +356,46 @@ class MeanSquaredErrorComputer(MetricComputer):
 class ConditionalAccuracyComputer(MetricComputer):
     def __init__(self, top_k: int) -> None:
         super().__init__(top_k)
-        self.assertionTypes = {"assertEquals", "assertNotEquals", "assertTrue", "assertFalse", "assertNull",
-                               "assertNotNull", "assertThrows", "TRY_CATCH" }
-        self.correct_predictions: dict[str, float] = {type: 0 for type in self.assertionTypes}
+        self.assertionTypes = {
+            "assertEquals",
+            "assertNotEquals",
+            "assertTrue",
+            "assertFalse",
+            "assertNull",
+            "assertNotNull",
+            "assertThrows",
+            "TRY_CATCH",
+        }
+        self.correct_predictions: dict[str, float] = {
+            type: 0 for type in self.assertionTypes
+        }
         self.total: dict[str, float] = {type: 0 for type in self.assertionTypes}
 
     def compute_metrics(self) -> dict[str, any]:
-        accuracy = {assert_type:  self.correct_predictions[assert_type] / self.total[assert_type] if self.total[assert_type] > 0 else 0 for assert_type in self.assertionTypes}
+        accuracy = {
+            assert_type: self.correct_predictions[assert_type] / self.total[assert_type]
+            if self.total[assert_type] > 0
+            else 0
+            for assert_type in self.assertionTypes
+        }
         return {"cond_acc": accuracy}
 
     def add_to_batch(
-            self, references: list[str], top_k_predictions_batch: list[list[str]]
+        self, references: list[str], top_k_predictions_batch: list[list[str]]
     ) -> None:
-        ref_assertion_code_part = [assert_statement.split() for assert_statement in references]
+        ref_assertion_code_part = [
+            assert_statement.split() for assert_statement in references
+        ]
         pred_assertions = [
-            [assert_statement.split() for assert_statement in top_k] for top_k in top_k_predictions_batch
+            [assert_statement.split() for assert_statement in top_k]
+            for top_k in top_k_predictions_batch
         ]
         for ref, preds in zip(ref_assertion_code_part, pred_assertions):
             ref_assertion, *ref_code = ref
             stripped_ref_assert = ref_assertion.strip()
-            suitable_pred = self._get_suitable_prediction(preds, ref_code, stripped_ref_assert)
+            suitable_pred = self._get_suitable_prediction(
+                preds, ref_code, stripped_ref_assert
+            )
             if suitable_pred is None:
                 continue
             pred_assertion, *pred_code = suitable_pred
@@ -321,11 +410,12 @@ class ConditionalAccuracyComputer(MetricComputer):
                 continue
             pred_assertion, *pred_code = pred
             stripped_pred_assert = pred_assertion.strip()
-            if stripped_ref_assert == stripped_pred_assert and stripped_ref_assert in self.assertionTypes:
+            if (
+                stripped_ref_assert == stripped_pred_assert
+                and stripped_ref_assert in self.assertionTypes
+            ):
                 if return_pred is None:
                     return_pred = pred
                 if _clean("".join(ref_code)) == _clean("".join(pred_code)):
                     return pred
         return return_pred
-
-

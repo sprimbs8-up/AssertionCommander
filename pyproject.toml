@@ -17,6 +17,7 @@ isort = { version = "~5.13.0", extras = ["pyproject"] }
 ruff = "~0.1.0"
 transformers = "^4.37.2"
 torch = "^2.2.0"
+bidict = "^0.23.1"
 
 [build-system]
 requires = ["poetry-core"]

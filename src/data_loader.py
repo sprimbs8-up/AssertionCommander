@@ -94,13 +94,17 @@ class AtlasDataLoader(DataLoader):
             / "testMethods.txt"
         )
         self.abstract_dict_file: Path = (
-            Path(self.default_data_dir)
-            / str(self.assertion_number)
-            / self.model.name
-            / type_dir
-            / self._get_dataset_type_dir()
-            / "dict.jsonl"
-        ) if not raw_set else None
+            (
+                Path(self.default_data_dir)
+                / str(self.assertion_number)
+                / self.model.name
+                / type_dir
+                / self._get_dataset_type_dir()
+                / "dict.jsonl"
+            )
+            if not raw_set
+            else None
+        )
         self.input_file = None
         self.dict_file = None
         self.ref_file = None
@@ -115,7 +119,6 @@ class AtlasDataLoader(DataLoader):
         self.input_file = Path.open(self.input_file_path)
         if not self.raw_set:
             self.dict_file = Path.open(self.abstract_dict_file)
-
 
     def load_data_stepwise(self) -> tqdm:
         total = self.num_data_elements // self.batch_size
@@ -136,14 +139,21 @@ class AtlasDataLoader(DataLoader):
                 zip(
                     iter(lambda: tuple(islice(self.ref_file, self.batch_size)), ()),
                     iter(lambda: tuple(islice(self.input_file, self.batch_size)), ()),
-                    map(self.line_to_dict, iter(lambda: tuple(islice(self.dict_file, self.batch_size)), ())),
+                    map(
+                        self.line_to_dict,
+                        iter(
+                            lambda: tuple(islice(self.dict_file, self.batch_size)), ()
+                        ),
+                    ),
                     strict=False,
                 ),
                 total=total,
                 desc=f"Evaluating {self.model.name}-{self.assertion_number}",
             )
+
     def line_to_dict(self, line):
         return [json.loads(l) for l in line]
+
     def close_files(self) -> None:
         self.ref_file.close()
         self.input_file.close()
@@ -290,7 +300,9 @@ class CachedPredictionsDataLoader(DataLoader):
         total = self.num_data_elements // self.batch_size
         if self.num_data_elements % self.batch_size != 0:
             total += 1
-        prediction_reader = csv.reader(x.replace('\0', '') for x in self.predictions_file)
+        prediction_reader = csv.reader(
+            x.replace("\0", "") for x in self.predictions_file
+        )
         return tqdm(
             map(
                 self._split,
