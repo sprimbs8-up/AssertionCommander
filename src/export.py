@@ -17,7 +17,7 @@ class Exporter(abc.ABC):
         default_dir: str,
         dataset_type: DatasetType,
         no_pred_export: bool,
-        raw_file_path: str,
+        data_type: str,
         epoch: str,
     ) -> None:
         self.model: Models = model
@@ -27,6 +27,7 @@ class Exporter(abc.ABC):
         self.dataset_type = dataset_type
         self.no_pred_export = no_pred_export
         self.epoch = epoch
+        self.data_type = data_type
 
     def __enter__(self) -> object:
         self.initialize()
@@ -106,7 +107,7 @@ class FileWriterExporter(Exporter):
         default_dir: str,
         dataset_type: DatasetType,
         no_pred_export: bool,
-        raw_file_path: str,
+        data_type: str,
         epoch: str,
     ) -> None:
         super().__init__(
@@ -116,7 +117,7 @@ class FileWriterExporter(Exporter):
             default_dir,
             dataset_type,
             no_pred_export,
-            raw_file_path,
+            data_type,
             epoch,
         )
         self.prediction_file = None
@@ -125,8 +126,8 @@ class FileWriterExporter(Exporter):
         self.base_path: Path = (
             Path(self.default_dir) / str(self.assertion_number) / self.model.name
         )
-        if raw_file_path is not None:
-            self.base_path = self.base_path / raw_file_path
+        if data_type is not None:
+            self.base_path = self.base_path / data_type
         appendix: str = (
             f"epoch-{'%02d' % int(self.epoch)}." if self.epoch is not None else ""
         )
@@ -175,7 +176,7 @@ class CombinedExporter(Exporter):
         dataset_type: DatasetType,
         exporters_str: str,
         no_pred_export: bool,
-        raw_file: str,
+        data_type: str,
         epoch: str,
     ) -> None:
         super().__init__(
@@ -185,7 +186,7 @@ class CombinedExporter(Exporter):
             default_dir,
             dataset_type,
             no_pred_export,
-            raw_file,
+            data_type,
             epoch,
         )
         self.exporters = _get_exporters_from_str(
@@ -196,7 +197,7 @@ class CombinedExporter(Exporter):
             default_dir,
             dataset_type,
             no_pred_export,
-            raw_file,
+            data_type,
             epoch,
         )
 
@@ -227,7 +228,7 @@ def _get_exporters_from_str(
     default_dir: str,
     dataset_type: DatasetType,
     no_pred_export: bool,
-    raw_file: str,
+    data_type: str,
     epoch: str,
 ) -> set[Exporter]:
     return {
@@ -239,7 +240,7 @@ def _get_exporters_from_str(
             default_dir,
             dataset_type,
             no_pred_export,
-            raw_file,
+            data_type,
             epoch,
         )
         for exporter in exporters.split(":")
@@ -254,7 +255,7 @@ def _parse_exporter(
     default_dir: str,
     dataset_type: DatasetType,
     no_pred_export: bool,
-    raw_file: str,
+    data_type: str,
     epoch: str,
 ) -> Exporter:
     match exporter:
@@ -266,7 +267,7 @@ def _parse_exporter(
                 default_dir,
                 dataset_type,
                 no_pred_export,
-                raw_file,
+                data_type,
                 epoch,
             )
         case "file":
@@ -277,7 +278,7 @@ def _parse_exporter(
                 default_dir,
                 dataset_type,
                 no_pred_export,
-                raw_file,
+                data_type,
                 epoch,
             )
     error_msg = f'The exporter "{exporter}" is not available.'

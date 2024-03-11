@@ -4,6 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["sprimbs <53371440+sprimbs@users.noreply.github.com>"]
 readme = "README.md"
+packages = [{ include = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -67,3 +68,5 @@ exclude = [
     ".pytest_cache",
 ]
 target-version = "py310"
+[tool.poetry.scripts]
+evaluate = "src.main:run"

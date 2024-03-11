@@ -91,7 +91,7 @@ def parse_arguments() -> argparse.Namespace:
         dest="epoch",
         help="Specifies the epoch under evaluation.",
     )
-    parser.add_argument("--abstract", dest="abstract", action="store_true")
+    parser.add_argument("--data-type", dest="data_type", default=None, help="The type of the data. Possible inputs: { None, raw, abstract, test_method }")
 
     return parser.parse_args()
 
@@ -110,7 +110,7 @@ def main(args: argparse.Namespace) -> int:
     export_dir = args.export_dir
     pred_file = args.pred_file
     epoch = args.epoch
-    raw_data = not args.abstract
+    data_type = args.data_type
     commander: AssertionCommander = AssertionCommander(
         model_url=model_url,
         model_name=model,
@@ -122,7 +122,7 @@ def main(args: argparse.Namespace) -> int:
         root_dir=root_dir,
         export_dir=export_dir,
         cached_predictions_file=pred_file,
-        raw_data=raw_data,
+        data_type=data_type,
         epoch=epoch,
     )
     commander.evaluate()
@@ -137,10 +137,12 @@ def _log_args(args: argparse.Namespace) -> None:
         logging.info(logging_str)
 
 
-if __name__ == "__main__":
+def run():
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s|%(name)s|%(levelname)s|%(message)s"
     )
     parsed_args = parse_arguments()
     with logging_redirect_tqdm():
         sys.exit(main(parsed_args))
+if __name__ == "__main__":
+    run()

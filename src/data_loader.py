@@ -15,20 +15,20 @@ from src.models import Models
 
 class DataLoader(abc.ABC):
     def __init__(
-        self,
-        model: Models,
-        assertion_number: int,
-        batch_size: int,
-        default_data_dir: str,
-        dataset: DatasetType,
-        raw_set: bool,
+            self,
+            model: Models,
+            assertion_number: int,
+            batch_size: int,
+            default_data_dir: str | None,
+            dataset: DatasetType,
+            data_type: str,
     ) -> None:
         self.model = model
         self.assertion_number = assertion_number
         self.batch_size = batch_size
         self.default_data_dir = default_data_dir
         self.dataset = dataset
-        self.raw_set = raw_set
+        self.data_type = data_type
 
     def __enter__(self) -> object:
         self.load_files()
@@ -65,44 +65,45 @@ class DataLoader(abc.ABC):
 
 class AtlasDataLoader(DataLoader):
     def __init__(
-        self,
-        model: Models,
-        assertion_number: int,
-        batch_size: int,
-        default_data_dir: str,
-        dataset: DatasetType,
-        raw_set: bool,
+            self,
+            model: Models,
+            assertion_number: int,
+            batch_size: int,
+            default_data_dir: str,
+            dataset: DatasetType,
+            data_type: str,
     ) -> None:
         super().__init__(
-            model, assertion_number, batch_size, default_data_dir, dataset, raw_set
+            model, assertion_number, batch_size, default_data_dir, dataset, data_type
         )
-        type_dir = "raw" if raw_set else "abstract"
+        if data_type not in {"raw", "abstract"}:
+            raise ValueError("The data type must be raw or abstract when using atlas!")
         self.references_file_path: Path = (
-            Path(self.default_data_dir)
-            / str(self.assertion_number)
-            / self.model.name
-            / type_dir
-            / self._get_dataset_type_dir()
-            / "assertLines.txt"
-        )
-        self.input_file_path: Path = (
-            Path(self.default_data_dir)
-            / str(self.assertion_number)
-            / self.model.name
-            / type_dir
-            / self._get_dataset_type_dir()
-            / "testMethods.txt"
-        )
-        self.abstract_dict_file: Path = (
-            (
                 Path(self.default_data_dir)
                 / str(self.assertion_number)
                 / self.model.name
-                / type_dir
+                / data_type
                 / self._get_dataset_type_dir()
-                / "dict.jsonl"
+                / "assertLines.txt"
+        )
+        self.input_file_path: Path = (
+                Path(self.default_data_dir)
+                / str(self.assertion_number)
+                / self.model.name
+                / data_type
+                / self._get_dataset_type_dir()
+                / "testMethods.txt"
+        )
+        self.abstract_dict_file: Path = (
+            (
+                    Path(self.default_data_dir)
+                    / str(self.assertion_number)
+                    / self.model.name
+                    / data_type
+                    / self._get_dataset_type_dir()
+                    / "dict.jsonl"
             )
-            if not raw_set
+            if self._is_abstract()
             else None
         )
         self.input_file = None
@@ -117,14 +118,14 @@ class AtlasDataLoader(DataLoader):
     def load_files(self) -> None:
         self.ref_file = Path.open(self.references_file_path)
         self.input_file = Path.open(self.input_file_path)
-        if not self.raw_set:
+        if self._is_abstract():
             self.dict_file = Path.open(self.abstract_dict_file)
 
     def load_data_stepwise(self) -> tqdm:
         total = self.num_data_elements // self.batch_size
         if self.num_data_elements % self.batch_size != 0:
             total += 1
-        if self.raw_set:
+        if not self._is_abstract():
             return tqdm(
                 zip(
                     iter(lambda: tuple(islice(self.ref_file, self.batch_size)), ()),
@@ -160,26 +161,31 @@ class AtlasDataLoader(DataLoader):
         if self.dict_file is not None:
             self.dict_file.close()
 
+    def _is_abstract(self):
+        return self.data_type == "abstract"
+
 
 class TogaDataLoader(DataLoader):
     def __init__(
-        self,
-        model: Models,
-        assertion_number: int,
-        batch_size: int,
-        default_data_dir: str,
-        dataset: DatasetType,
-        raw_set: bool,
+            self,
+            model: Models,
+            assertion_number: int,
+            batch_size: int,
+            default_data_dir: str,
+            dataset: DatasetType,
+            data_type: str,
     ):
         super().__init__(
-            model, assertion_number, batch_size, default_data_dir, dataset, raw_set
+            model, assertion_number, batch_size, default_data_dir, dataset, data_type
         )
+        if self.data_type is not None:
+            raise ValueError("The data type must be non when using Toga.")
         self.toga_data_path: Path = (
-            Path(self.default_data_dir)
-            / str(self.assertion_number)
-            / self.model.name
-            / "combined"
-            / (self._get_dataset_type_dir() + ".csv")
+                Path(self.default_data_dir)
+                / str(self.assertion_number)
+                / self.model.name
+                / "combined"
+                / (self._get_dataset_type_dir() + ".csv")
         )
         self.num_data_elements: int = self.get_number_data_points()
 
@@ -214,29 +220,31 @@ class TogaDataLoader(DataLoader):
     def _extract_references_and_inputs(self, tuple_predictions):
         pred_list = list(tuple_predictions)
         references = [ref["assertion"] for ref in pred_list]
-        predictions = [ref["fm"] + "[SEP]" + ref["test"] + "[SEP]" for ref in pred_list]
+        predictions = [" ".join([ref["test"], ref["fm"], ref["docstring"]]) for ref in pred_list]
         return references, predictions
 
 
 class AsserT5DataLoader(DataLoader):
     def __init__(
-        self,
-        model: Models,
-        assertion_number: int,
-        batch_size: int,
-        default_data_dir: str,
-        dataset: DatasetType,
-        raw_set: bool,
+            self,
+            model: Models,
+            assertion_number: int,
+            batch_size: int,
+            default_data_dir: str,
+            dataset: DatasetType,
+            data_type: str,
     ):
         super().__init__(
-            model, assertion_number, batch_size, default_data_dir, dataset, raw_set
+            model, assertion_number, batch_size, default_data_dir, dataset, data_type
         )
+        if data_type not in {"raw", "abstract", "test_method"}:
+            raise ValueError("The data type must be raw, abstract or test_method when using AsserT5!")
         self.assert5_datapath: Path = (
-            Path(self.default_data_dir)
-            / str(self.assertion_number)
-            / self.model.name
-            / ("raw" if raw_set else "abstract")
-            / (self._get_dataset_type_dir() + ".jsonl")
+                Path(self.default_data_dir)
+                / str(self.assertion_number)
+                / self.model.name
+                / self.data_type
+                / (self._get_dataset_type_dir() + ".jsonl")
         )
         self.num_data_elements: int = self.get_number_data_points()
 
@@ -275,18 +283,17 @@ class AsserT5DataLoader(DataLoader):
 
 class CachedPredictionsDataLoader(DataLoader):
     def __init__(
-        self,
-        model: Models,
-        assertion_number: int,
-        batch_size: int,
-        default_data_dir: str,
-        dataset: DatasetType,
-        cached_predictions_file: str,
-        top_k: int,
-        raw_set: bool,
+            self,
+            model: Models,
+            assertion_number: int,
+            batch_size: int,
+            dataset: DatasetType,
+            cached_predictions_file: str,
+            top_k: int,
+            data_type: str
     ) -> None:
         super().__init__(
-            model, assertion_number, batch_size, default_data_dir, dataset, raw_set
+            model, assertion_number, batch_size, None, dataset, data_type
         )
         self.cached_predictions_file = cached_predictions_file
         self.predictions_file = None
@@ -315,7 +322,7 @@ class CachedPredictionsDataLoader(DataLoader):
     def _split(self, tuple_predictions):
         ref_pred_list = list(tuple_predictions)
         references = [ref[0] for ref in ref_pred_list]
-        predictions = [pred[1 : self.top_k + 1] for pred in ref_pred_list]
+        predictions = [pred[1: self.top_k + 1] for pred in ref_pred_list]
         return references, predictions
 
     def close_files(self) -> None:
@@ -327,14 +334,14 @@ class CachedPredictionsDataLoader(DataLoader):
 
 
 def build_data_loader(
-    model: Models,
-    assertion_number: int,
-    batch_size: int,
-    dataset: DatasetType,
-    default_data_dir: str,
-    cache_pred_dir: str,
-    top_k: int,
-    raw_data: bool,
+        model: Models,
+        assertion_number: int,
+        batch_size: int,
+        dataset: DatasetType,
+        default_data_dir: str,
+        cache_pred_dir: str,
+        top_k: int,
+        data_type: str,
 ) -> DataLoader:
     if cache_pred_dir is not None:
         return CachedPredictionsDataLoader(
@@ -342,10 +349,9 @@ def build_data_loader(
             assertion_number=assertion_number,
             batch_size=batch_size,
             dataset=dataset,
-            default_data_dir=default_data_dir,
             cached_predictions_file=cache_pred_dir,
             top_k=top_k,
-            raw_set=raw_data,
+            data_type=data_type,
         )
     match model:
         case Models.ATLAS | Models.DOUBLE_TRANSFORMERS:
@@ -355,7 +361,7 @@ def build_data_loader(
                 batch_size=batch_size,
                 dataset=dataset,
                 default_data_dir=default_data_dir,
-                raw_set=raw_data,
+                data_type=data_type,
             )
         case Models.TOGA:
             return TogaDataLoader(
@@ -364,10 +370,8 @@ def build_data_loader(
                 batch_size=batch_size,
                 dataset=dataset,
                 default_data_dir=default_data_dir,
-                raw_set=raw_data,
+                data_type=data_type,
             )
-        case Models.CODE_2_SEQ:
-            raise NotImplementedError
         case Models.ASSERT5:
             return AsserT5DataLoader(
                 model=model,
@@ -375,6 +379,6 @@ def build_data_loader(
                 batch_size=batch_size,
                 dataset=dataset,
                 default_data_dir=default_data_dir,
-                raw_set=raw_data,
+                data_type=data_type,
             )
     raise ValueError

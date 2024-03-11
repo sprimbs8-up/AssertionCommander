@@ -17,7 +17,6 @@ class Models(Enum):
     ATLAS = "atlas"
     DOUBLE_TRANSFORMERS = "double-transformers"
     TOGA = "toga"
-    CODE_2_SEQ = "code2seq"
     ASSERT5 = "asserT5"
     GPT = "gpt"
 

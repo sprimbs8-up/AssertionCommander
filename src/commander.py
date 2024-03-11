@@ -1,5 +1,4 @@
 import logging
-import sys
 
 import requests
 
@@ -35,7 +34,7 @@ class AssertionCommander:
         root_dir: str,
         export_dir: str,
         cached_predictions_file: str,
-        raw_data: bool,
+        data_type: str,
         epoch: str,
         metric_evaluators: MetricComputer = None,
         exporters: str = None,
@@ -57,7 +56,7 @@ class AssertionCommander:
             default_data_dir=self.root_dir,
             cache_pred_dir=cached_predictions_file,
             top_k=top_k,
-            raw_data=raw_data,
+            data_type=data_type,
         )
         self.epoch = epoch
         if self.metric_evaluators is None:
@@ -71,7 +70,7 @@ class AssertionCommander:
             dataset_type=self.dataset_type,
             exporters_str=exporters,
             no_pred_export=not self.pred_export,
-            raw_file="raw" if raw_data else "abstract",
+            data_type=data_type,
             epoch=self.epoch,
         )
 
