@@ -2,15 +2,14 @@ import abc
 import csv
 import json
 
-import pandas
 from itertools import islice
 from pathlib import Path
 from typing import Iterable, Any
 
 from tqdm import tqdm
 
-from src.dataset_type import DatasetType
-from src.models import Models
+from src.evaluate.dataset_type import DatasetType
+from src.evaluate.models import Models
 
 
 class DataLoader(abc.ABC):

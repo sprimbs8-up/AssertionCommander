@@ -1,7 +1,7 @@
 import argparse
 import csv
 
-from src.main import ASSERTION_TYPES
+from src.evaluate.main import ASSERTION_TYPES
 from io import StringIO
 
 

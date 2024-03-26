@@ -4,8 +4,8 @@ import json
 import logging
 from pathlib import Path
 
-from src.dataset_type import DatasetType
-from src.models import Models
+from src.evaluate.dataset_type import DatasetType
+from src.evaluate.models import Models
 
 
 class Exporter(abc.ABC):
