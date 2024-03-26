@@ -164,6 +164,67 @@ class AtlasDataLoader(DataLoader):
     def _is_abstract(self):
         return self.data_type == "abstract"
 
+class DoPreBARTDataLoader(DataLoader):
+    def __init__(
+            self,
+            model: Models,
+            assertion_number: int,
+            batch_size: int,
+            default_data_dir: str,
+            dataset: DatasetType,
+            data_type: str,
+    ) -> None:
+        super().__init__(
+            model, assertion_number, batch_size, default_data_dir, dataset, data_type
+        )
+        if data_type is not None:
+            raise ValueError("The data type must be None when using DoPreBART!")
+        self.references_file_path: Path = (
+                Path(self.default_data_dir)
+                / str(self.assertion_number)
+                / self.model.name
+                / self._get_dataset_type_dir()
+                / "assertLines.txt"
+        )
+        self.input_file_path: Path = (
+                Path(self.default_data_dir)
+                / str(self.assertion_number)
+                / self.model.name
+                / self._get_dataset_type_dir()
+                / "testMethods.txt"
+        )
+
+        self.input_file = None
+        self.ref_file = None
+        self.num_data_elements: int = self.get_number_data_points()
+
+    def get_number_data_points(self) -> int:
+        with Path.open(self.input_file_path) as inputs:
+            return len(inputs.readlines())
+
+    def load_files(self) -> None:
+        self.ref_file = Path.open(self.references_file_path)
+        self.input_file = Path.open(self.input_file_path)
+
+    def load_data_stepwise(self) -> tqdm:
+        total = self.num_data_elements // self.batch_size
+        if self.num_data_elements % self.batch_size != 0:
+            total += 1
+
+        return tqdm(
+            zip(
+                iter(lambda: tuple(islice(self.ref_file, self.batch_size)), ()),
+                iter(lambda: tuple(islice(self.input_file, self.batch_size)), ()),
+                strict=False,
+            ),
+            total=total,
+            desc=f"Evaluating {self.model.name}-{self.assertion_number}",
+        )
+
+
+    def close_files(self) -> None:
+        self.ref_file.close()
+        self.input_file.close()
 
 class TogaDataLoader(DataLoader):
     def __init__(
@@ -354,8 +415,17 @@ def build_data_loader(
             data_type=data_type,
         )
     match model:
-        case Models.ATLAS | Models.DOUBLE_TRANSFORMERS:
+        case Models.ATLAS:
             return AtlasDataLoader(
+                model=model,
+                assertion_number=assertion_number,
+                batch_size=batch_size,
+                dataset=dataset,
+                default_data_dir=default_data_dir,
+                data_type=data_type,
+            )
+        case Models.DOUBLE_TRANSFORMERS:
+            return DoPreBARTDataLoader(
                 model=model,
                 assertion_number=assertion_number,
                 batch_size=batch_size,

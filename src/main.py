@@ -7,7 +7,16 @@ from tqdm.contrib.logging import logging_redirect_tqdm
 from src.commander import AssertionCommander
 from src.dataset_type import parse_type
 
-
+ASSERTION_TYPES = {
+            "assertEquals",
+            "assertNotEquals",
+            "assertTrue",
+            "assertFalse",
+            "assertNull",
+            "assertNotNull",
+            "assertThrows",
+            "TRY_CATCH",
+        }
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Description of your script.")
     parser.add_argument(

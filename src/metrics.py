@@ -341,9 +341,12 @@ class MeanSquaredErrorComputer(MetricComputer):
             .numpy()
             .tolist()
         )
-        self.current_mse_list.append(
-            (len(references), mean_squared_error(tok_ref, tok_pred))
-        )
+        try:
+            self.current_mse_list.append(
+                (len(references), mean_squared_error(tok_ref, tok_pred))
+            )
+        except Exception:
+            logging.warning("The mse could not be calculated!")
 
     def compute_metrics(self) -> dict[str, float]:
         current_mse = 0.0
