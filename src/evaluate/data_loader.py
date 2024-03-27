@@ -1,11 +1,10 @@
 import abc
 import csv
 import json
-
+from collections.abc import Iterable
 from itertools import islice
 from pathlib import Path
 from typing import Any
-from collections.abc import Iterable
 
 from tqdm import tqdm
 

@@ -6,11 +6,10 @@ import os
 import subprocess
 
 import numpy as np
-from sklearn.metrics import f1_score, precision_score, recall_score, mean_squared_error
-
-from nltk.translate.bleu_score import sentence_bleu
-from transformers import AutoTokenizer
 from bidict import bidict
+from nltk.translate.bleu_score import sentence_bleu
+from sklearn.metrics import f1_score, mean_squared_error, precision_score, recall_score
+from transformers import AutoTokenizer
 
 
 class MetricComputer(abc.ABC):
