@@ -62,6 +62,9 @@ class Exporter(abc.ABC):
 
 
 class ConsoleExporter(Exporter):
+    def export_abstract_predictions(self, references: list[str], top_k_predictions: list[list[str]]) -> None:
+        pass
+
     def export_predictions(
         self, references: list[str], top_k_predictions: list[list[str]]
     ) -> None:
