@@ -4,7 +4,8 @@ import json
 
 from itertools import islice
 from pathlib import Path
-from typing import Iterable, Any
+from typing import Any
+from collections.abc import Iterable
 
 from tqdm import tqdm
 

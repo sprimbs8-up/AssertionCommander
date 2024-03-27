@@ -8,7 +8,6 @@ import subprocess
 import numpy as np
 from sklearn.metrics import f1_score, precision_score, recall_score, mean_squared_error
 
-import evaluate
 from nltk.translate.bleu_score import sentence_bleu
 from transformers import AutoTokenizer
 from bidict import bidict
@@ -394,7 +393,7 @@ class ConditionalAccuracyComputer(MetricComputer):
             [assert_statement.split() for assert_statement in top_k]
             for top_k in top_k_predictions_batch
         ]
-        for ref, preds in zip(ref_assertion_code_part, pred_assertions):
+        for ref, preds in zip(ref_assertion_code_part, pred_assertions, strict=False):
             ref_assertion, *ref_code = ref
             stripped_ref_assert = ref_assertion.strip()
             suitable_pred = self._get_suitable_prediction(

@@ -165,7 +165,7 @@ class AssertionCommander:
     def _convert_to_raw_tokens(self, optional, predictions, ref):
         raw_refs = []
         raw_preds = []
-        for r, pred, optional_dict in zip(ref, predictions, optional):
+        for r, pred, optional_dict in zip(ref, predictions, optional, strict=False):
             ref_tokens = r.split()
             pred_tokens = [
                 self._normalize_token_list(
