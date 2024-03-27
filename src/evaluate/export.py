@@ -42,6 +42,11 @@ class Exporter(abc.ABC):
     ) -> None:
         pass
 
+    def export_abstract_predictions(
+        self, references: list[str], top_k_predictions: list[list[str]]
+    ) -> None:
+        pass
+
     @abc.abstractmethod
     def export_metrics(self, metrics: dict[str, float]) -> None:
         pass
@@ -120,6 +125,8 @@ class FileWriterExporter(Exporter):
             data_type,
             epoch,
         )
+        self.abstract_prediction_file = None
+        self.abstract_prediction_file_path = None
         self.prediction_file = None
         self.metric_file = None
         self.default_dir = default_dir
@@ -136,6 +143,12 @@ class FileWriterExporter(Exporter):
             self.prediction_dir
             / f"{appendix}{self.dataset_type.type_name}_top-{top_k}.csv"
         )
+
+        if data_type == "abstract":
+            self.abstract_prediction_file_path: Path = (
+                self.prediction_dir
+                / f"{appendix}{self.dataset_type.type_name}_top-{top_k}.abstract.csv"
+            )
         self.metric_dir: Path = self.base_path / "metrics"
         self.metric_file_path: Path = (
             self.metric_dir
@@ -150,6 +163,14 @@ class FileWriterExporter(Exporter):
                 csv_writer = csv.writer(self.prediction_file)
                 csv_writer.writerow([ref.replace("\n", ""), *top_k])
 
+    def export_abstract_predictions(
+        self, references: list[str], top_k_predictions: list[list[str]]
+    ) -> None:
+        if self.abstract_prediction_file is not None:
+            for ref, top_k in zip(references, top_k_predictions, strict=False):
+                csv_writer = csv.writer(self.abstract_prediction_file)
+                csv_writer.writerow([ref.replace("\n", ""), *top_k])
+
     def export_metrics(self, metrics: dict[str, float]) -> None:
         json.dump(metrics, self.metric_file)
 
@@ -159,10 +180,16 @@ class FileWriterExporter(Exporter):
         if not self.no_pred_export:
             self.prediction_file = Path.open(self.prediction_file_path, mode="w")
         self.metric_file = Path.open(self.metric_file_path, mode="w")
+        if self.abstract_prediction_file_path is not None:
+            self.abstract_prediction_file = Path.open(
+                self.abstract_prediction_file_path, mode="w"
+            )
 
     def close(self) -> None:
         if not self.no_pred_export:
             self.prediction_file.close()
+        if self.abstract_prediction_file is not None:
+            self.abstract_prediction_file.close()
         self.metric_file.close()
 
 
@@ -206,6 +233,12 @@ class CombinedExporter(Exporter):
     ) -> None:
         for exporter in self.exporters:
             exporter.export_predictions(references, top_k_predictions)
+
+    def export_abstract_predictions(
+        self, references: list[str], top_k_predictions: list[list[str]]
+    ) -> None:
+        for exporter in self.exporters:
+            exporter.export_abstract_predictions(references, top_k_predictions)
 
     def export_metrics(self, metrics: dict[str, float]) -> None:
         for exporter in self.exporters:

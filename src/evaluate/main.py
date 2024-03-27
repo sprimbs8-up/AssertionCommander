@@ -8,15 +8,17 @@ from src.evaluate.commander import AssertionCommander
 from src.evaluate.dataset_type import parse_type
 
 ASSERTION_TYPES = {
-            "assertEquals",
-            "assertNotEquals",
-            "assertTrue",
-            "assertFalse",
-            "assertNull",
-            "assertNotNull",
-            "assertThrows",
-            "TRY_CATCH",
-        }
+    "assertEquals",
+    "assertNotEquals",
+    "assertTrue",
+    "assertFalse",
+    "assertNull",
+    "assertNotNull",
+    "assertThrows",
+    "TRY_CATCH",
+}
+
+
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Description of your script.")
     parser.add_argument(
@@ -100,7 +102,12 @@ def parse_arguments() -> argparse.Namespace:
         dest="epoch",
         help="Specifies the epoch under evaluation.",
     )
-    parser.add_argument("--data-type", dest="data_type", default=None, help="The type of the data. Possible inputs: { None, raw, abstract, test_method }")
+    parser.add_argument(
+        "--data-type",
+        dest="data_type",
+        default=None,
+        help="The type of the data. Possible inputs: { None, raw, abstract, test_method }",
+    )
 
     return parser.parse_args()
 
@@ -153,5 +160,7 @@ def run():
     parsed_args = parse_arguments()
     with logging_redirect_tqdm():
         sys.exit(main(parsed_args))
+
+
 if __name__ == "__main__":
     run()

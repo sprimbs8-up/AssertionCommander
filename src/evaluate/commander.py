@@ -111,6 +111,13 @@ class AssertionCommander:
             references=expected, top_k_predictions=top_k_predictions
         )
 
+    def _export_abstract_predictions(
+        self, expected: list[str], top_k_predictions: list[list[str]]
+    ) -> None:
+        self.exporters.export_abstract_predictions(
+            references=expected, top_k_predictions=top_k_predictions
+        )
+
     def _export_metrics(self, metrics: dict[str, float]) -> None:
         self.exporters.export_metrics(metrics)
 
@@ -140,6 +147,7 @@ class AssertionCommander:
                 )
                 if self.pred_export:
                     predictions = self._predict(inputs, self.top_k)
+                    self._export_abstract_predictions(ref, predictions)
                     if optional is not None and len(optional) > 0:
                         predictions, ref = self._convert_to_raw_tokens(
                             optional[0], predictions, ref

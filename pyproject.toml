@@ -71,3 +71,4 @@ target-version = "py310"
 [tool.poetry.scripts]
 evaluate = "src.evaluate.main:run"
 filter-gpt = "src.filtering.gpt_filter:main"
+compare-models = "src.compare_models.compare:main"
