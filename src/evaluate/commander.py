@@ -148,11 +148,12 @@ class AssertionCommander:
                 if self.pred_export:
                     predictions = self._predict(inputs, self.top_k)
                     self._export_abstract_predictions(ref, predictions)
+                    raw_ref = ref
                     if optional is not None and len(optional) > 0:
-                        predictions, ref = self._convert_to_raw_tokens(
+                        predictions, raw_ref = self._convert_to_raw_tokens(
                             optional[0], predictions, ref
                         )
-                    self._export_predictions(ref, predictions)
+                    self._export_predictions(raw_ref, predictions)
                 else:
                     predictions = inputs
 
@@ -162,7 +163,9 @@ class AssertionCommander:
                 current_metrics = self.metric_evaluators.compute_metrics()
             self._export_metrics(current_metrics)
 
-    def _convert_to_raw_tokens(self, optional, predictions, ref):
+    def _convert_to_raw_tokens(
+        self, optional: list[dict], predictions: list[list[str]], ref: list[str]
+    ) -> tuple[list[str], list[str]]:
         raw_refs = []
         raw_preds = []
         for r, pred, optional_dict in zip(ref, predictions, optional, strict=False):
@@ -184,11 +187,11 @@ class AssertionCommander:
         predictions = raw_preds
         return predictions, ref
 
-    def _normalize_token(self, token):
+    def _normalize_token(self, token: str) -> str:
         normalized_token = token
         for character in [".", ","]:
             normalized_token = f" {character} ".join(normalized_token.split(character))
         return normalized_token
 
-    def _normalize_token_list(self, token_list):
+    def _normalize_token_list(self, token_list: list[str]) -> list[str]:
         return (" ".join(token_list)).split()

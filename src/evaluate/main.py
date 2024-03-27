@@ -153,7 +153,7 @@ def _log_args(args: argparse.Namespace) -> None:
         logging.info(logging_str)
 
 
-def run():
+def run() -> None:
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s|%(name)s|%(levelname)s|%(message)s"
     )

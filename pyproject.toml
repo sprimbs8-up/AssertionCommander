@@ -57,7 +57,9 @@ ignore = [
     "RUF013",
     "S113",
     "S603",
-    "BLE001"
+    "BLE001",
+    "ARG002",
+    "FBT001"
 ]
 show-source = true
 exclude = [

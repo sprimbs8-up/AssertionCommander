@@ -42,6 +42,7 @@ class Exporter(abc.ABC):
     ) -> None:
         pass
 
+    @abc.abstractmethod
     def export_abstract_predictions(
         self, references: list[str], top_k_predictions: list[list[str]]
     ) -> None:

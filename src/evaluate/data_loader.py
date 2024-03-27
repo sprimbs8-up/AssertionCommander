@@ -77,7 +77,8 @@ class AtlasDataLoader(DataLoader):
             model, assertion_number, batch_size, default_data_dir, dataset, data_type
         )
         if data_type not in {"raw", "abstract"}:
-            raise ValueError("The data type must be raw or abstract when using atlas!")
+            exception_text = "The data type must be raw or abstract when using atlas!"
+            raise ValueError(exception_text)
         self.references_file_path: Path = (
             Path(self.default_data_dir)
             / str(self.assertion_number)
@@ -135,24 +136,22 @@ class AtlasDataLoader(DataLoader):
                 total=total,
                 desc=f"Evaluating {self.model.name}-{self.assertion_number}",
             )
-        else:
-            return tqdm(
-                zip(
-                    iter(lambda: tuple(islice(self.ref_file, self.batch_size)), ()),
-                    iter(lambda: tuple(islice(self.input_file, self.batch_size)), ()),
-                    map(
-                        self.line_to_dict,
-                        iter(
-                            lambda: tuple(islice(self.dict_file, self.batch_size)), ()
-                        ),
-                    ),
-                    strict=False,
-                ),
-                total=total,
-                desc=f"Evaluating {self.model.name}-{self.assertion_number}",
-            )
 
-    def line_to_dict(self, line):
+        return tqdm(
+            zip(
+                iter(lambda: tuple(islice(self.ref_file, self.batch_size)), ()),
+                iter(lambda: tuple(islice(self.input_file, self.batch_size)), ()),
+                map(
+                    self.line_to_dict,
+                    iter(lambda: tuple(islice(self.dict_file, self.batch_size)), ()),
+                ),
+                strict=False,
+            ),
+            total=total,
+            desc=f"Evaluating {self.model.name}-{self.assertion_number}",
+        )
+
+    def line_to_dict(self, line: str) -> list[dict]:
         return [json.loads(l) for l in line]
 
     def close_files(self) -> None:
@@ -161,7 +160,7 @@ class AtlasDataLoader(DataLoader):
         if self.dict_file is not None:
             self.dict_file.close()
 
-    def _is_abstract(self):
+    def _is_abstract(self) -> bool:
         return self.data_type == "abstract"
 
 
@@ -179,7 +178,8 @@ class DoPreBARTDataLoader(DataLoader):
             model, assertion_number, batch_size, default_data_dir, dataset, data_type
         )
         if data_type is not None:
-            raise ValueError("The data type must be None when using DoPreBART!")
+            exception_text = "The data type must be None when using DoPreBART!"
+            raise ValueError(exception_text)
         self.references_file_path: Path = (
             Path(self.default_data_dir)
             / str(self.assertion_number)
@@ -236,12 +236,13 @@ class TogaDataLoader(DataLoader):
         default_data_dir: str,
         dataset: DatasetType,
         data_type: str,
-    ):
+    ) -> None:
         super().__init__(
             model, assertion_number, batch_size, default_data_dir, dataset, data_type
         )
         if self.data_type is not None:
-            raise ValueError("The data type must be non when using Toga.")
+            exception_text = "The data type must be non when using Toga."
+            raise ValueError(exception_text)
         self.toga_data_path: Path = (
             Path(self.default_data_dir)
             / str(self.assertion_number)
@@ -279,7 +280,7 @@ class TogaDataLoader(DataLoader):
         with Path.open(self.toga_data_path) as inputs:
             return len(inputs.readlines()) - 1
 
-    def _extract_references_and_inputs(self, tuple_predictions):
+    def _extract_references_and_inputs(self, tuple_predictions: tuple) -> tuple:
         pred_list = list(tuple_predictions)
         references = [ref["assertion"] for ref in pred_list]
         predictions = [
@@ -297,14 +298,15 @@ class AsserT5DataLoader(DataLoader):
         default_data_dir: str,
         dataset: DatasetType,
         data_type: str,
-    ):
+    ) -> None:
         super().__init__(
             model, assertion_number, batch_size, default_data_dir, dataset, data_type
         )
         if data_type not in {"raw", "abstract", "test_method"}:
-            raise ValueError(
+            exception_text = (
                 "The data type must be raw, abstract or test_method when using AsserT5!"
             )
+            raise ValueError(exception_text)
         self.assert5_datapath: Path = (
             Path(self.default_data_dir)
             / str(self.assertion_number)
@@ -338,7 +340,7 @@ class AsserT5DataLoader(DataLoader):
         with Path.open(self.assert5_datapath) as inputs:
             return len(inputs.readlines())
 
-    def _convert_to_token_dict(self, input_tuple):
+    def _convert_to_token_dict(self, input_tuple: tuple) -> tuple[list, list, list]:
         input_list = list(input_tuple)
         json_dict_list = [json.loads(row) for row in input_list]
         labels = [el["labels"] for el in json_dict_list]
@@ -383,7 +385,7 @@ class CachedPredictionsDataLoader(DataLoader):
             desc=f"Evaluating {self.model.name}-{self.assertion_number}",
         )
 
-    def _split(self, tuple_predictions):
+    def _split(self, tuple_predictions: tuple) -> tuple[list, list]:
         ref_pred_list = list(tuple_predictions)
         references = [ref[0] for ref in ref_pred_list]
         predictions = [pred[1 : self.top_k + 1] for pred in ref_pred_list]

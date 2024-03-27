@@ -59,12 +59,11 @@ class MetricComputer(abc.ABC):
 
 
 def _extract_assertion_types(assertion: list[str]) -> list[str]:
-    return list(
-        map(
-            lambda stmt: stmt[0] if len(stmt) > 0 else None,
-            map(lambda stmt: stmt.split(), assertion),
-        )
-    )
+    return [
+        split_stmt[0] if len(split_stmt) > 0 else None
+        for stmt in assertion
+        for split_stmt in stmt.split()
+    ]
 
 
 class CombinedMetricComputer(MetricComputer):
@@ -309,7 +308,7 @@ class BleuMetricComputer(MetricComputer):
 
 
 class MeanSquaredErrorComputer(MetricComputer):
-    def __init__(self, top_k: int):
+    def __init__(self, top_k: int) -> None:
         super().__init__(top_k)
         self.current_mse_list = []
         self.tokenizer = AutoTokenizer.from_pretrained("Salesforce/codet5-large")
@@ -359,7 +358,7 @@ class MeanSquaredErrorComputer(MetricComputer):
 class ConditionalAccuracyComputer(MetricComputer):
     def __init__(self, top_k: int) -> None:
         super().__init__(top_k)
-        self.assertionTypes = {
+        self.assertion_types = {
             "assertEquals",
             "assertNotEquals",
             "assertTrue",
@@ -370,16 +369,18 @@ class ConditionalAccuracyComputer(MetricComputer):
             "TRY_CATCH",
         }
         self.correct_predictions: dict[str, float] = {
-            type: 0 for type in self.assertionTypes
+            assertion_type: 0 for assertion_type in self.assertion_types
         }
-        self.total: dict[str, float] = {type: 0 for type in self.assertionTypes}
+        self.total: dict[str, float] = {
+            assertion_type: 0 for assertion_type in self.assertion_types
+        }
 
     def compute_metrics(self) -> dict[str, any]:
         accuracy = {
             assert_type: self.correct_predictions[assert_type] / self.total[assert_type]
             if self.total[assert_type] > 0
             else 0
-            for assert_type in self.assertionTypes
+            for assert_type in self.assertion_types
         }
         return {"cond_acc": accuracy}
 
@@ -406,7 +407,9 @@ class ConditionalAccuracyComputer(MetricComputer):
             if _clean("".join(pred_code)) == _clean("".join(ref_code)):
                 self.correct_predictions[pred_assertion.strip()] += 1
 
-    def _get_suitable_prediction(self, preds, ref_code, stripped_ref_assert):
+    def _get_suitable_prediction(
+        self, preds: list[list[str]], ref_code: list[str], stripped_ref_assert: str
+    ) -> list[str]:
         return_pred = None
         for pred in preds:
             if len(pred) == 0:
@@ -415,7 +418,7 @@ class ConditionalAccuracyComputer(MetricComputer):
             stripped_pred_assert = pred_assertion.strip()
             if (
                 stripped_ref_assert == stripped_pred_assert
-                and stripped_ref_assert in self.assertionTypes
+                and stripped_ref_assert in self.assertion_types
             ):
                 if return_pred is None:
                     return_pred = pred
@@ -425,7 +428,7 @@ class ConditionalAccuracyComputer(MetricComputer):
 
 
 class EntryCounterMetricComputer(MetricComputer):
-    def __init__(self, top_k: int):
+    def __init__(self, top_k: int) -> None:
         super().__init__(top_k)
         self.entry_counter: int = 0
 

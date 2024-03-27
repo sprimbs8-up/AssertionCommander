@@ -15,7 +15,7 @@ class VariantComparator:
         correct_in_both: int,
         correct_in_raw: int,
         correct_in_abstract: int,
-    ):
+    ) -> None:
         self.total = total
         self.correct_in_both = correct_in_both
         self.correct_in_raw = correct_in_raw
@@ -32,11 +32,11 @@ class VariantComparator:
 
 def compare_files(
     raw_file_path: Path, abstract_file_path: Path, output_file_path: Path
-):
+) -> None:
     output_file_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(raw_file_path) as raw_file, open(
+    with Path.open(raw_file_path) as raw_file, Path.open(
         abstract_file_path
-    ) as abstract_file, open(output_file_path, "w") as output_file:
+    ) as abstract_file, Path.open(output_file_path, "w") as output_file:
         raw_file_reader = csv.reader(raw_file)
         abstract_file_reader = csv.reader(abstract_file)
         both_correct = 0
@@ -69,10 +69,17 @@ def compare_files(
         )
         json.dump(variant_comparator_container.to_dict(), output_file)
         logging.info(
-            f"Total {total} - Correct in both variants: {both_correct} - Correct in raw variant: {correct_in_raw_variant} - Correct in abstract variant: {correct_in_abstract_variant}"
+            "Total %s - Correct in both variants: %s - Correct in raw variant: %s - Correct in abstract variant: %s",
+            total,
+            both_correct,
+            correct_in_raw_variant,
+            correct_in_abstract_variant,
         )
         logging.info(
-            f"Total {total} - Correct in both variants: {both_correct / total * 100}% - Correct in raw variant: {correct_in_raw_variant / total * 100}% - Correct in abstract variant: {correct_in_abstract_variant/total * 100}%"
+            "Percent:  Correct in both variants: %0.2f%% - Correct in raw variant: %0.2f%% - Correct in abstract variant: %0.2f%%",
+            both_correct / total * 100,
+            correct_in_raw_variant / total * 100,
+            correct_in_abstract_variant / total * 100,
         )
 
 
@@ -86,7 +93,7 @@ def _clean(assertion: str) -> str:
     )
 
 
-def main():
+def main() -> None:
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s|%(name)s|%(levelname)s|%(message)s"
     )
