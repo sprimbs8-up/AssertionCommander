@@ -2,5 +2,5 @@ evaluation-data
 .idea/
 /results/
 /results-dummy/
-src/__pycache__/
+**/__pycache__/**
 /master-thesis-results/
