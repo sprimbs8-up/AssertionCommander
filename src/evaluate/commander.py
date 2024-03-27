@@ -145,10 +145,10 @@ class AssertionCommander:
                 progress_bar.set_description(
                     _get_metrics_for_bar(current_metrics), refresh=True
                 )
+                raw_ref = ref
                 if self.pred_export:
                     predictions = self._predict(inputs, self.top_k)
                     self._export_abstract_predictions(ref, predictions)
-                    raw_ref = ref
                     if optional is not None and len(optional) > 0:
                         predictions, raw_ref = self._convert_to_raw_tokens(
                             optional[0], predictions, ref
@@ -158,7 +158,7 @@ class AssertionCommander:
                     predictions = inputs
 
                 self.metric_evaluators.add_to_batch(
-                    references=ref, top_k_predictions_batch=predictions
+                    references=raw_ref, top_k_predictions_batch=predictions
                 )
                 current_metrics = self.metric_evaluators.compute_metrics()
             self._export_metrics(current_metrics)

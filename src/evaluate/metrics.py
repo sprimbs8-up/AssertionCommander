@@ -58,11 +58,7 @@ class MetricComputer(abc.ABC):
 
 
 def _extract_assertion_types(assertion: list[str]) -> list[str]:
-    return [
-        split_stmt[0] if len(split_stmt) > 0 else None
-        for stmt in assertion
-        for split_stmt in stmt.split()
-    ]
+    return [stmt.split()[0] for stmt in assertion]
 
 
 class CombinedMetricComputer(MetricComputer):
