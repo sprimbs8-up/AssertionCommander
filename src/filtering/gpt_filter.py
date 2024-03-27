@@ -1,12 +1,13 @@
 import argparse
 import csv
+from pathlib import Path
 
 from src.evaluate.main import ASSERTION_TYPES
 from io import StringIO
 
 
-def filter_row_if_no_valid_junit_assertion(input_file, output_file):
-    with open(input_file, "rb") as infile, open(
+def filter_row_if_no_valid_junit_assertion(input_file: Path, output_file: Path) -> None:
+    with Path.open(input_file, "rb") as infile, Path.open(
         output_file, "w", newline=""
     ) as outfile:
         text = infile.read().replace(b"\0", b"").decode(encoding="utf-8")
@@ -25,7 +26,7 @@ def filter_row_if_no_valid_junit_assertion(input_file, output_file):
                 writer.writerow(row)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Filter CSV data based on a specified column and value."
     )
