@@ -69,18 +69,20 @@ def compare_files(
             total, both_correct, correct_in_raw_variant, correct_in_abstract_variant
         )
         json.dump(variant_comparator_container.to_dict(), output_file)
+        union_total = both_correct + correct_in_abstract_variant + correct_in_raw_variant
         logging.info(
-            "Total %s - Correct in both variants: %s - Correct in raw variant: %s - Correct in abstract variant: %s",
+            "Total %s - Correct in at least one variant: %s  - Correct in both variants: %s - Correct in raw variant: %s - Correct in abstract variant: %s",
             total,
+            union_total,
             both_correct,
             correct_in_raw_variant,
             correct_in_abstract_variant,
         )
         logging.info(
-            "Percent:  Correct in both variants: %0.2f%% - Correct in raw variant: %0.2f%% - Correct in abstract variant: %0.2f%%",
-            both_correct / total * 100,
-            correct_in_raw_variant / total * 100,
-            correct_in_abstract_variant / total * 100,
+            "RQ2:  Correct in both variants: %0.2f%% - Correct in raw variant: %0.2f%% - Correct in abstract variant: %0.2f%%",
+            both_correct / union_total * 100,
+            correct_in_raw_variant / union_total * 100,
+            correct_in_abstract_variant / union_total * 100,
         )
 
 
