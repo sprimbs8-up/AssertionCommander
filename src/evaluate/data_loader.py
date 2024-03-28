@@ -301,7 +301,7 @@ class AsserT5DataLoader(DataLoader):
         super().__init__(
             model, assertion_number, batch_size, default_data_dir, dataset, data_type
         )
-        if data_type not in {"raw", "abstract", "test_method"}:
+        if data_type not in {"raw", "abstract", "test-method"}:
             exception_text = (
                 "The data type must be raw, abstract or test_method when using AsserT5!"
             )
