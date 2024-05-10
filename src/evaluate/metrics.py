@@ -49,7 +49,6 @@ class MetricComputer(abc.ABC):
             references (List[str]): The list of reference strings.
             top_k_predictions_batch (List[List[str]]): The batch of top-k prediction lists.
         """
-        pass
 
     @abc.abstractmethod
     def compute_metrics(self) -> dict[str, float]:
@@ -59,7 +58,6 @@ class MetricComputer(abc.ABC):
         Returns:
             Dict[str, float]: A dictionary containing metric names and their values.
         """
-        pass
 
     @staticmethod
     def select_usable_number(possible_types: list[int], expected: int) -> int:

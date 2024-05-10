@@ -44,7 +44,6 @@ class DataLoader(abc.ABC):
         Returns:
             None
         """
-        pass
 
     @abc.abstractmethod
     def load_data_stepwise(self) -> tqdm:
@@ -54,7 +53,6 @@ class DataLoader(abc.ABC):
         Returns:
             tqdm: A tqdm object representing the progress of data loading.
         """
-        pass
 
     @abc.abstractmethod
     def close_files(self) -> None:
@@ -64,7 +62,6 @@ class DataLoader(abc.ABC):
         Returns:
             None
         """
-        pass
 
     @abc.abstractmethod
     def get_number_data_points(self) -> int:
@@ -74,7 +71,6 @@ class DataLoader(abc.ABC):
         Returns:
             int: The number of data points in the dataset.
         """
-        pass
 
     def _get_dataset_type_dir(self) -> str:
         """

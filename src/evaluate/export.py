@@ -73,7 +73,6 @@ class Exporter(abc.ABC):
             references (list[str]): A list of reference assertions.
             top_k_predictions (list[list[str]]): A list of lists containing top-k predictions
                                                   for each input test method string."""
-        pass
 
     @abc.abstractmethod
     def export_abstract_predictions(
@@ -88,7 +87,6 @@ class Exporter(abc.ABC):
                                                   for each test method string.
 
         """
-        pass
 
     @abc.abstractmethod
     def export_metrics(self, metrics: dict[str, float]) -> None:
@@ -98,14 +96,12 @@ class Exporter(abc.ABC):
         Args:
             metrics (dict[str, float]): A dictionary containing evaluation metrics.
         """
-        pass
 
     @abc.abstractmethod
     def initialize(self) -> None:
         """
         Abstract method to initialize the exporter.
         """
-        pass
 
     @abc.abstractmethod
     def close(self) -> None:
@@ -115,7 +111,6 @@ class Exporter(abc.ABC):
         Returns:
             None
         """
-        pass
 
 
 class ConsoleExporter(Exporter):
