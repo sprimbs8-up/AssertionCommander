@@ -1,13 +1,26 @@
 import argparse
 import csv
-import dataclasses
 import json
 import logging
 from pathlib import Path
 
 from tqdm import tqdm
 
-ABSTRACT_TOKEN_IDENTIFIERS = ["IDENT","METHOD","CHAR","STRING","INT","BOOL","BYTE","SHORT","DOUBLE","FLOAT"]
+ABSTRACT_TOKEN_IDENTIFIERS = [
+    "IDENT",
+    "METHOD",
+    "CHAR",
+    "STRING",
+    "INT",
+    "BOOL",
+    "BYTE",
+    "SHORT",
+    "DOUBLE",
+    "FLOAT",
+]
+
+TRY_CATCH = "TRY_CATCH"
+
 
 def abstract_evaluation(
     data_file_path: Path, abstract_file_path: Path, output_file_path: Path
@@ -24,22 +37,34 @@ def abstract_evaluation(
         ):
             loaded_dict = json.loads(data)
             translation_dict = loaded_dict["dict"]
-            trans_dict_len +=len(translation_dict)
+            trans_dict_len += len(translation_dict)
             loaded_assertion = loaded_dict["labels"]
             expected_abstract, *abstract_predictions = abstract_data
             if expected_abstract != loaded_assertion:
                 logging.info("Error!")
                 continue
             counter = 0
-            abstract_preds_spaces = abstract_predictions[0].replace(","," , ").replace("."," . ").replace("!="," !=").replace("?"," ? ").replace("'"," ' ")
+            abstract_preds_spaces = (
+                abstract_predictions[0]
+                .replace(",", " , ")
+                .replace(".", " . ")
+                .replace("!=", " !=")
+                .replace("?", " ? ")
+                .replace("'", " ' ")
+            )
             abstract_predictions_split = abstract_preds_spaces.split()
             unknown = set()
-            for idx, predicted_assertion_token in enumerate(abstract_predictions_split):
-                if predicted_assertion_token not in translation_dict and is_abstract_token(predicted_assertion_token):
-                    counter+=1
+            for _idx, predicted_assertion_token in enumerate(
+                abstract_predictions_split
+            ):
+                if (
+                    predicted_assertion_token not in translation_dict
+                    and is_abstract_token(predicted_assertion_token)
+                ):
+                    counter += 1
                     unknown.add(predicted_assertion_token)
-            if counter >=4:
-                print("\n===" +str(counter))
+            if counter >= 4:
+                print("\n===" + str(counter))
                 print(abstract_preds_spaces)
                 print(expected_abstract)
                 print(unknown)
@@ -48,7 +73,7 @@ def abstract_evaluation(
         available_values = set(dict_counter)
         min_value = min(available_values)
         max_value = max(available_values)
-        failing_assert_types = {val:0 for val in range(min_value, max_value+1)}
+        failing_assert_types = {val: 0 for val in range(min_value, max_value + 1)}
         for el in dict_counter:
             failing_assert_types[el] += 1
         print(failing_assert_types)
@@ -56,8 +81,8 @@ def abstract_evaluation(
         json.dump(failing_assert_types, output_file)
 
 
-def is_abstract_token(token: str):
-    if token == "TRY_CATCH":
+def is_abstract_token(token: str) -> bool:
+    if token == TRY_CATCH:
         return False
     identifier, *rest = token.split("_")
     if len(rest) != 1:
@@ -85,9 +110,7 @@ def main() -> None:
     parser.add_argument(
         "-a", "--abstract-file", help="Input Abstract Prediction File", required=True
     )
-    parser.add_argument(
-        "-d", "--data-file", help="Input Data File", required=True
-    )
+    parser.add_argument("-d", "--data-file", help="Input Data File", required=True)
     parser.add_argument(
         "-o",
         "--output-file",

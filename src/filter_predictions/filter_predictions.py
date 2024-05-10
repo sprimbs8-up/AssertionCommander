@@ -3,11 +3,15 @@ import logging
 from pathlib import Path
 
 
-def handle_files(allowed_lines_path:Path, input_file_path: Path, output_file_path: Path) -> None:
+def handle_files(
+    allowed_lines_path: Path, input_file_path: Path, output_file_path: Path
+) -> None:
     output_file_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(allowed_lines_path, "r") as allowed_lines_file:
+    with Path.open(allowed_lines_path) as allowed_lines_file:
         allowed_lines = [int(line.strip()) for line in allowed_lines_file.readlines()]
-    with open(input_file_path, "r") as input_file,  open(output_file_path, "w") as output_file:
+    with Path.open(input_file_path) as input_file, Path.open(
+        output_file_path, "w"
+    ) as output_file:
         counter = 0
         for prediction in input_file:
             if counter in allowed_lines:
@@ -15,14 +19,11 @@ def handle_files(allowed_lines_path:Path, input_file_path: Path, output_file_pat
             counter += 1
 
 
-
 def main() -> None:
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s|%(name)s|%(levelname)s|%(message)s"
     )
-    parser = argparse.ArgumentParser(
-        description="Exports the data lines."
-    )
+    parser = argparse.ArgumentParser(description="Exports the data lines.")
     parser.add_argument(
         "-l", "--allowed-lines", help="The allowed lines.", required=True
     )
@@ -41,7 +42,6 @@ def main() -> None:
     input_file = Path(args.input_file)
     output_file = Path(args.output_file)
     handle_files(allowed_lines, input_file, output_file)
-
 
 
 if __name__ == "__main__":
