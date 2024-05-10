@@ -1,4 +1,5 @@
 import logging
+from typing import Tuple, List
 
 import requests
 
@@ -10,10 +11,31 @@ from src.evaluate.models import Models, parse_model
 
 
 def _build_prediction(input_strings: list[str], top_k: int) -> dict[str, float]:
+    """
+    Build prediction based on input strings and top k value.
+
+    Args:
+        input_strings (list[str]): A list of the preprocessed input strings for prediction.
+        top_k (int): The number of predictions to consider.
+
+    Returns:
+        dict[str, float]: A dictionary containing the preprocessed codes as 'preprocessed_codes'
+                          and the top k number as 'prediction_count'.
+    """
     return {"preprocessed_codes": input_strings, "prediction_count": top_k}
 
 
 def _get_metrics_for_bar(metrics: dict[str, float]) -> str:
+    """
+    Generate a formatted string representation of evaluation metrics.
+
+    Args:
+        metrics (dict[str, float]): A dictionary containing evaluation metrics.
+
+    Returns:
+        str: A formatted string representing the evaluation metrics, including accuracy,
+             syntactic correctness, and BLEU score.
+    """
     accuracy = metrics["accuracy"] if "accuracy" in metrics else 0
     syntactic_correct = (
         metrics["syntactic_correct"] if "syntactic_correct" in metrics else 0
@@ -75,6 +97,20 @@ class AssertionCommander:
         )
 
     def _predict(self, input_strings: list[str], top_k: int) -> list[list[str]]:
+        """
+        Predict the top-k assertions for a given list of preprocessed input strings.
+
+        This method sends a POST request to the model URL with the preprocessed input strings
+        and retrieves the predicted sub-tokens. It handles request errors and retries if necessary.
+
+        Args:
+            input_strings (list[str]): A list of input strings for prediction.
+            top_k (int): The number of predictions to retrieve for each input.
+
+        Returns:
+            list[list[str]]: Each inner list contains the top-k predicted assertions
+            for the corresponding input string.
+        """
         prediction_response = requests.post(
             url=self.model_url, json=_build_prediction(input_strings, top_k)
         )
@@ -99,6 +135,14 @@ class AssertionCommander:
 
     @staticmethod
     def _handle_request_errors() -> bool:
+        """
+        Handle errors that occur during HTTP requests.
+
+        This method logs the error message and prompts the user to continue or abort the operation.
+
+        Returns:
+            bool: True if the user chooses to continue, False otherwise.
+        """
         error_msg = "An Error occurred in server part. Please see server logs!"
         logging.exception(error_msg)
         text = input("Continue? [y]/n\n")
@@ -107,6 +151,13 @@ class AssertionCommander:
     def _export_predictions(
         self, expected: list[str], top_k_predictions: list[list[str]]
     ) -> None:
+        """
+        Export assertion predictions and their corresponding expected assertion.
+
+        Args:
+            expected (list[str]): A list of expected assertions for the predictions.
+            top_k_predictions (list[list[str]]): Top-k predictions for each input string.
+        """
         self.exporters.export_predictions(
             references=expected, top_k_predictions=top_k_predictions
         )
@@ -114,14 +165,40 @@ class AssertionCommander:
     def _export_abstract_predictions(
         self, expected: list[str], top_k_predictions: list[list[str]]
     ) -> None:
+        """
+        Export abstract assertion predictions and their corresponding expected assertions.
+
+        Args:
+            expected (list[str]): A list of expected assertions for the predictions.
+            top_k_predictions (list[list[str]]): Top-k predictions for each input string.
+        """
         self.exporters.export_abstract_predictions(
             references=expected, top_k_predictions=top_k_predictions
         )
 
     def _export_metrics(self, metrics: dict[str, float]) -> None:
+        """
+        Export evaluation metrics.
+
+        Args:
+            metrics (dict[str, float]): A dictionary containing evaluation metrics.
+        """
         self.exporters.export_metrics(metrics)
 
     def _check_correct_epoch(self) -> bool:
+        """
+        Check the consistency of the server's epoch with the configured epoch.
+
+        If the configured epoch is provided and not None, this method sends a GET request
+        to the model URL to retrieve the server's current epoch. It then compares this
+        epoch with the configured epoch. If they are different, it logs a warning and
+        stops the evaluation.
+
+        Returns:
+            bool: True if the server's epoch matches the configured epoch or if the
+                  configured epoch is None, indicating no inconsistency. False if the
+                  epochs are different, indicating an inconsistency.
+        """
         if self.epoch is not None:
             prediction_response = requests.get(url=self.model_url + "/epoch")
             server_epoch = prediction_response.json()
@@ -135,6 +212,13 @@ class AssertionCommander:
         return True
 
     def evaluate(self) -> None:
+        """
+        Perform evaluation of the model.
+
+        This method orchestrates the evaluation process, including loading data stepwise
+        from the data loader, predicting assertions, exporting predictions and metrics,
+        and computing evaluation metrics.
+        """
         correct_epoch = self._check_correct_epoch()
         if not correct_epoch:
             return
@@ -165,7 +249,24 @@ class AssertionCommander:
 
     def _convert_to_raw_tokens(
         self, optional: list[dict], predictions: list[list[str]], ref: list[str]
-    ) -> tuple[list[str], list[str]]:
+    ) -> tuple[list[list[str]], list[str]]:
+        """
+        Convert predictions and references to their raw token forms.
+
+        This method takes dictionaries containing token mappings, predictions,
+        and reference lists. It then converts the predictions and references to their
+        raw token forms using the provided mappings.
+
+        Args:
+            optional (list[dict]): A list of dictionaries containing optional token mappings.
+            predictions (list[list[str]]): A list of lists containing top-k predictions
+                                            for each input string.
+            ref (list[str]): A list of reference values for the predictions.
+
+        Returns:
+            tuple[list[list[str]], list[str]]: A tuple containing the converted predictions
+                                                and references in their raw token forms.
+        """
         raw_refs = []
         raw_preds = []
         for r, pred, optional_dict in zip(ref, predictions, optional, strict=False):
@@ -187,11 +288,31 @@ class AssertionCommander:
         predictions = raw_preds
         return predictions, ref
 
-    def _normalize_token(self, token: str) -> str:
+    @staticmethod
+    def _normalize_token(token: str) -> str:
+        """
+        Normalize a token by adding spaces around punctuation characters.
+
+        Args:
+            token (str): The token to be normalized.
+
+        Returns:
+            str: The normalized token.
+        """
         normalized_token = token
         for character in [".", ","]:
             normalized_token = f" {character} ".join(normalized_token.split(character))
         return normalized_token
 
-    def _normalize_token_list(self, token_list: list[str]) -> list[str]:
+    @staticmethod
+    def _normalize_token_list(token_list: list[str]) -> list[str]:
+        """
+        Normalize a list of tokens by splitting and joining them with spaces.
+
+        Args:
+            token_list (list[str]): The list of tokens to be normalized.
+
+        Returns:
+            list[str]: The normalized list of tokens.
+        """
         return (" ".join(token_list)).split()
