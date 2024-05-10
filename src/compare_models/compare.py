@@ -62,8 +62,12 @@ def compare_files(
                 both_correct += 1
             elif expected in raw_predictions_list:
                 correct_in_raw_variant += 1
+                with open("raw.txt", "a") as raw_file2:
+                    raw_file2.write(str(total)+"#"+"#".join(raw_data) + "\n")
             elif expected in abstract_predictions_list:
                 correct_in_abstract_variant += 1
+                with open("abstract.txt", "a") as abstract_file_2:
+                    abstract_file_2.write(str(total)+"#"+"#".join(abstract_data) + "\n")
             total += 1
         variant_comparator_container = VariantComparator(
             total, both_correct, correct_in_raw_variant, correct_in_abstract_variant

@@ -4,6 +4,7 @@ from enum import Enum
 class DatasetType(Enum):
     TRAINING = "train"
     TEST = "test"
+    TEST_FILTERED = "test_filtered"
     VALIDATION = "val"
 
     def __new__(cls, *args: object) -> object:
