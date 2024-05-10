@@ -13,7 +13,17 @@ from transformers import AutoTokenizer
 
 
 class MetricComputer(abc.ABC):
+    """
+    Abstract base class for computing evaluation metrics for java junit test assertions.
+    """
+
     def __init__(self, top_k: int) -> None:
+        """
+        Initialize the MetricComputer.
+
+        Args:
+            top_k (int): The top k value for computing metrics.
+        """
         self.top_k = top_k
         self.assertionTypeDict = bidict(
             {
@@ -32,25 +42,66 @@ class MetricComputer(abc.ABC):
     def add_to_batch(
         self, references: list[str], top_k_predictions_batch: list[list[str]]
     ) -> None:
+        """
+        Add assertion references and top-k predictions to the batch.
+
+        Args:
+            references (List[str]): The list of reference strings.
+            top_k_predictions_batch (List[List[str]]): The batch of top-k prediction lists.
+        """
         pass
 
     @abc.abstractmethod
     def compute_metrics(self) -> dict[str, float]:
+        """
+        Compute and return the metrics.
+
+        Returns:
+            Dict[str, float]: A dictionary containing metric names and their values.
+        """
         pass
 
     @staticmethod
     def select_usable_number(possible_types: list[int], expected: int) -> int:
+        """
+        Returns the assertion if it is in the possible types.
+
+        Args:
+            possible_types (List[int]): List of possible types.
+            expected (int): The expected type.
+
+        Returns:
+            int: The selected assertion number.
+        """
         if expected in possible_types:
             return expected
 
         return possible_types[0]
 
     def convert_assertion_list_to_number_list(self, assertion: list[str]) -> list[int]:
+        """
+        Convert a list of assertion types to a list of corresponding numbers.
+
+        Args:
+            assertion (List[str]): List of assertion types.
+
+        Returns:
+            List[int]: List of corresponding assertion numbers.
+        """
         return [
             self.convert_assertion_to_number(assert_type) for assert_type in assertion
         ]
 
     def convert_assertion_to_number(self, assertion: str) -> int:
+        """
+        Convert an assertion type to its corresponding number.
+
+        Args:
+            assertion (str): The assertion type.
+
+        Returns:
+            int: The corresponding assertion number.
+        """
         if assertion in self.assertionTypeDict:
             return self.assertionTypeDict[assertion]
 
@@ -58,6 +109,15 @@ class MetricComputer(abc.ABC):
 
 
 def _extract_assertion_types(assertion: list[str]) -> list[str]:
+    """
+    Extract assertion types from a list of assertions.
+
+    Args:
+        assertion (List[str]): List of assertions.
+
+    Returns:
+        List[str]: List of assertion types.
+    """
     return_assertions = []
     for stmt in assertion:
         split_stmt = stmt.split()
@@ -69,6 +129,10 @@ def _extract_assertion_types(assertion: list[str]) -> list[str]:
 
 
 class CombinedMetricComputer(MetricComputer):
+    """
+    Class for computing combined metrics using multiple MetricComputer instances.
+    """
+
     def __init__(
         self, top_k: int, metric_computers: list[MetricComputer] = None
     ) -> None:
@@ -101,6 +165,10 @@ class CombinedMetricComputer(MetricComputer):
 
 
 class AssertionTypeMetricComputer(MetricComputer):
+    """
+    Class for computing metrics based on assertion types (precision, recall, f1).
+    """
+
     def __init__(self, top_k: int) -> None:
         super().__init__(top_k)
         self.labels = list(range(len(self.assertionTypeDict)))
@@ -183,6 +251,15 @@ class AssertionTypeMetricComputer(MetricComputer):
         }
 
     def _convert_to_dict(self, array: np.ndarray) -> dict[str, float]:
+        """
+        Convert a numpy array to a dictionary mapping assertion types to their values.
+
+        Args:
+            array (np.ndarray): The numpy array containing assertion values.
+
+        Returns:
+            Dict[str, float]: A dictionary mapping assertion types to their values.
+        """
         return {
             self.assertionTypeDict.inverse[idx]: float(value)
             for idx, value in enumerate(array)
@@ -190,6 +267,10 @@ class AssertionTypeMetricComputer(MetricComputer):
 
 
 class SyntacticCorrectnessMetricComputer(MetricComputer):
+    """
+    Class for computing metrics related to syntactic correctness.
+    """
+
     def __init__(self, top_k: int) -> None:
         super().__init__(top_k)
         self.syntactic_correct: int = 0
@@ -215,6 +296,12 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
     def _compute_syntactic_correct_predictions(
         self, top_k_predictions_batch: list[list[str]]
     ) -> None:
+        """
+        Compute syntactically correct predictions.
+
+        Args:
+            top_k_predictions_batch (List[List[str]]): Batch of top-k predictions.
+        """
         flatten_prediction_batch = []
         for top_k_pred in top_k_predictions_batch:
             flatten_prediction_batch.extend(top_k_pred)
@@ -261,6 +348,10 @@ def _clean_list(assertions: list[str]) -> list[str]:
 
 
 class AccuracyMetricComputer(MetricComputer):
+    """
+    Class for computing metrics related to exact match accuracy.
+    """
+
     def __init__(self, top_k: int) -> None:
         super().__init__(top_k)
         self.correct_predictions: int = 0
@@ -287,6 +378,10 @@ class AccuracyMetricComputer(MetricComputer):
 
 
 class BleuMetricComputer(MetricComputer):
+    """
+    Class for computing metrics related to bleu score.
+    """
+
     def __init__(self, top_k: int) -> None:
         super().__init__(top_k)
         self.bleu_score_sum: float = 0.0
@@ -310,6 +405,10 @@ class BleuMetricComputer(MetricComputer):
 
 
 class MeanSquaredErrorComputer(MetricComputer):
+    """
+    Class for computing metrics related to MSE Loss based on the tokenized tokens from Salesforce/codet5-large.
+    """
+
     def __init__(self, top_k: int) -> None:
         super().__init__(top_k)
         self.current_mse_list = []
@@ -358,6 +457,11 @@ class MeanSquaredErrorComputer(MetricComputer):
 
 
 class ConditionalAccuracyComputer(MetricComputer):
+    """
+    Class for computing metrics related to conditional accuracy which determines the ratio of the correct assertions
+    given the assertion type was correct.
+    """
+
     def __init__(self, top_k: int) -> None:
         super().__init__(top_k)
         self.assertion_types = {
@@ -430,6 +534,8 @@ class ConditionalAccuracyComputer(MetricComputer):
 
 
 class EntryCounterMetricComputer(MetricComputer):
+    """Class for counting the number of predictions."""
+
     def __init__(self, top_k: int) -> None:
         super().__init__(top_k)
         self.entry_counter: int = 0

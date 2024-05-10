@@ -20,6 +20,12 @@ ASSERTION_TYPES = {
 
 
 def parse_arguments() -> argparse.Namespace:
+    """
+    Parse command-line arguments.
+
+    Returns:
+        argparse.Namespace: Parsed command-line arguments.
+    """
     parser = argparse.ArgumentParser(description="Description of your script.")
     parser.add_argument(
         "--root-dir",
@@ -113,6 +119,15 @@ def parse_arguments() -> argparse.Namespace:
 
 
 def main(args: argparse.Namespace) -> int:
+    """
+    Main function to run the assertion evaluation.
+
+    Args:
+        args (argparse.Namespace): Parsed command-line arguments.
+
+    Returns:
+        int: Exit status of the program.
+    """
     _log_args(args)
 
     root_dir = args.root_dir
@@ -146,7 +161,13 @@ def main(args: argparse.Namespace) -> int:
 
 
 def _log_args(args: argparse.Namespace) -> None:
-    logging.info("Configuration:")  #
+    """
+    Log parsed arguments.
+
+    Args:
+        args (argparse.Namespace): Parsed command-line arguments.
+    """
+    logging.info("Configuration:")
     max_length = max([len(arg) for arg in vars(args)])
     for arg in vars(args):
         logging_str = f"- {arg}:{' '*(max_length - len(arg)+2)}{getattr(args, arg)}"
@@ -154,6 +175,9 @@ def _log_args(args: argparse.Namespace) -> None:
 
 
 def run() -> None:
+    """
+    Run the script.
+    """
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s|%(name)s|%(levelname)s|%(message)s"
     )

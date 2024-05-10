@@ -9,6 +9,20 @@ from src.evaluate.models import Models
 
 
 class Exporter(abc.ABC):
+    """
+    Abstract base class for exporting predictions and metrics.
+
+    Attributes:
+        model (Models): The model used for exporting.
+        assertion_number (int): The number of assertions.
+        top_k (int): The number of top predictions to export.
+        default_dir (str): The default directory for exporting.
+        dataset_type (DatasetType): The type of dataset being exported.
+        no_pred_export (bool): Flag indicating whether prediction export is enabled.
+        data_type (str): The type of data being exported.
+        epoch (str): The current epoch of the model.
+    """
+
     def __init__(
         self,
         model: Models,
@@ -30,38 +44,85 @@ class Exporter(abc.ABC):
         self.data_type = data_type
 
     def __enter__(self) -> object:
+        """
+        Context manager entry point.
+
+        Returns:
+            object: The Exporter instance.
+        """
         self.initialize()
         return self
 
     def __exit__(self, *exc_details: object) -> None:
+        """
+        Context manager exit point.
+
+        Args:
+            *exc_details (object): Exception details.
+        """
         self.close()
 
     @abc.abstractmethod
     def export_predictions(
         self, references: list[str], top_k_predictions: list[list[str]]
     ) -> None:
+        """
+        Abstract method to export assertion predictions.
+
+        Args:
+            references (list[str]): A list of reference assertions.
+            top_k_predictions (list[list[str]]): A list of lists containing top-k predictions
+                                                  for each input test method string."""
         pass
 
     @abc.abstractmethod
     def export_abstract_predictions(
         self, references: list[str], top_k_predictions: list[list[str]]
     ) -> None:
+        """
+        Abstract method to export abstract assertion predictions.
+
+        Args:
+            references (list[str]): A list of reference assertions.
+            top_k_predictions (list[list[str]]): A list of lists containing top-k predictions
+                                                  for each test method string.
+
+        """
         pass
 
     @abc.abstractmethod
     def export_metrics(self, metrics: dict[str, float]) -> None:
+        """
+        Abstract method to export evaluation metrics.
+
+        Args:
+            metrics (dict[str, float]): A dictionary containing evaluation metrics.
+        """
         pass
 
     @abc.abstractmethod
     def initialize(self) -> None:
+        """
+        Abstract method to initialize the exporter.
+        """
         pass
 
     @abc.abstractmethod
     def close(self) -> None:
+        """
+        Abstract method to close the exporter.
+
+        Returns:
+            None
+        """
         pass
 
 
 class ConsoleExporter(Exporter):
+    """
+    Exporter class for printing the metrics to the console.
+    """
+
     def export_abstract_predictions(
         self, references: list[str], top_k_predictions: list[list[str]]
     ) -> None:
@@ -110,6 +171,10 @@ class ConsoleExporter(Exporter):
 
 
 class FileWriterExporter(Exporter):
+    """
+    Exporter class for writing predictions and metrics to files.
+    """
+
     def __init__(
         self,
         model: Models,

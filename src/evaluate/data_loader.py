@@ -38,21 +38,51 @@ class DataLoader(abc.ABC):
 
     @abc.abstractmethod
     def load_files(self) -> None:
+        """
+        Abstract method to load files required for data processing.
+
+        Returns:
+            None
+        """
         pass
 
     @abc.abstractmethod
     def load_data_stepwise(self) -> tqdm:
+        """
+        Abstract method to load data stepwise for processing.
+
+        Returns:
+            tqdm: A tqdm object representing the progress of data loading.
+        """
         pass
 
     @abc.abstractmethod
     def close_files(self) -> None:
+        """
+        Abstract method to close files opened during data loading.
+
+        Returns:
+            None
+        """
         pass
 
     @abc.abstractmethod
     def get_number_data_points(self) -> int:
+        """
+        Abstract method to get the number of data points in the dataset.
+
+        Returns:
+            int: The number of data points in the dataset.
+        """
         pass
 
     def _get_dataset_type_dir(self) -> str:
+        """
+        Get the directory corresponding to the dataset type.
+
+        Returns:
+            str: The directory name corresponding to the dataset type.
+        """
         match self.dataset:
             case DatasetType.TEST:
                 return "testing"
@@ -150,7 +180,8 @@ class AtlasDataLoader(DataLoader):
             desc=f"Evaluating {self.model.name}-{self.assertion_number}",
         )
 
-    def line_to_dict(self, line: str) -> list[dict]:
+    @staticmethod
+    def line_to_dict(line: str) -> list[dict]:
         return [json.loads(l) for l in line]
 
     def close_files(self) -> None:
