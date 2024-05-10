@@ -2,7 +2,7 @@
 name = "assertioncommander"
 version = "0.1.0"
 description = ""
-authors = ["sprimbs <53371440+sprimbs@users.noreply.github.com>"]
+authors = ["Severin Primbs"]
 readme = "README.md"
 packages = [{ include = "src" }]
 
