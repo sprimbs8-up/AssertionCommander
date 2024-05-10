@@ -3,7 +3,8 @@ This evaluation tool was developed by **Severin Primbs** as part of a Master's t
 **AsserT5: Automated Generation of Test Assertions using a Large Language Model Approach**
 ## Installation
 
-To run the script, you will need a common Python 3.10 variant with the poetry package manager installed. Additionally, Java 17 must be installed, and the `JAVA_HOME` environment variable must be appropriately configured.
+To run the script, you will need a common Python 3.10 variant with the poetry package manager installed. 
+Additionally, Java 17 must be installed, or the `JAVA_HOME` environment variable must be appropriately configured with the path of java 17.
 
 ```bash
 poetry env use 3.10
@@ -63,3 +64,59 @@ The data utilized originates from the provided dummy dataset and is exported to 
 The model server is running on localhost, accessible via port 8080.
 
 
+
+## Assertion Comparison Script (Raw vs. Abstract)
+
+This script is designed to compare predictions made by a model on raw data versus abstracted data. The comparison results are written to an output file.
+
+### Usage
+
+```bash
+poetry run compare -r RAW_FILE -a ABSTRACT_FILE -o OUTPUT_FILE
+```
+
+- `-r, --raw-file`: Specifies the path to the input file containing predictions made on raw data.
+- `-a, --abstract-file`: Specifies the path to the input file containing predictions made on abstracted data.
+- `-o, --output-file`: Specifies the directory where the comparison results should be saved.
+
+## Unknown Abstract Token Evaluation Script
+
+The script performs evaluation on abstract predictions and computes statistics based on the evaluation results. 
+The script categorizes predictions based on the count of unknown abstract tokens and generates a distribution of failing assertion types.
+
+### Usage
+
+```bash
+poetry run evaluate-abstract -a ABSTRACT_FILE -d DATA_FILE -o OUTPUT_FILE
+```
+
+- `-a, --abstract-file`: Specifies the path to the input file containing abstract predictions.
+- `-d, --data-file`: Specifies the path to the input file containing data.
+- `-o, --output-file`: Specifies the directory where the evaluation results should be saved.
+
+
+## Filter Predictions
+
+This script handles files based on allowed line numbers and exports only the lines specified.
+
+### Usage
+
+```bash
+poetry run filter-predictions -l ALLOWED_LINES -i INPUT_FILE -o OUTPUT_FILE
+```
+
+- `-l, --allowed-lines`: Specifies the path to the file containing allowed line numbers.
+- `-i, --input-file`: Specifies the path to the input file.
+- `-o, --output-file`: Specifies the directory where the exported lines should be saved.
+
+## JUnit Assertion Filter
+This script filters rows in a CSV file based on the presence of valid JUnit assertions made by ChatGPT.
+
+## Usage
+
+```bash
+poetry run gpt-filter -i INPUT_FILE -o OUTPUT_FILE
+```
+
+- `-i, --input_file`: Specifies the path to the input CSV file.
+- `-o, --output_file`: Specifies the path to the output CSV file.
