@@ -25,6 +25,14 @@ TRY_CATCH = "TRY_CATCH"
 def abstract_evaluation(
     data_file_path: Path, abstract_file_path: Path, output_file_path: Path
 ) -> None:
+    """
+    Perform evaluation on abstract predictions.
+
+    Args:
+        data_file_path (Path): Path to the data file.
+        abstract_file_path (Path): Path to the abstract prediction file.
+        output_file_path (Path): Path to the output file.
+    """
     output_file_path.parent.mkdir(parents=True, exist_ok=True)
     with Path.open(data_file_path) as data_file, Path.open(
         abstract_file_path
@@ -82,6 +90,15 @@ def abstract_evaluation(
 
 
 def is_abstract_token(token: str) -> bool:
+    """
+    Check if a token is an abstract token.
+
+    Args:
+        token (str): Token to check.
+
+    Returns:
+        bool: True if the token is an abstract token, False otherwise.
+    """
     if token == TRY_CATCH:
         return False
     identifier, *rest = token.split("_")
@@ -91,6 +108,15 @@ def is_abstract_token(token: str) -> bool:
 
 
 def _clean(assertion: str) -> str:
+    """
+    Clean assertion string.
+
+    Args:
+        assertion (str): Assertion string.
+
+    Returns:
+        str: Cleaned assertion string.
+    """
     return (
         assertion.replace(" ", "")
         .replace("\n", "")

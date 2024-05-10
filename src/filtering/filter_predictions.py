@@ -6,9 +6,20 @@ from pathlib import Path
 def handle_files(
     allowed_lines_path: Path, input_file_path: Path, output_file_path: Path
 ) -> None:
+    """
+    Handle files based on allowed lines and exports only them.
+
+    Args:
+        allowed_lines_path (Path): Path to the file containing allowed line numbers.
+        input_file_path (Path): Path to the input file.
+        output_file_path (Path): Path to the output file.
+    """
     output_file_path.parent.mkdir(parents=True, exist_ok=True)
+    # filter allowed lines
     with Path.open(allowed_lines_path) as allowed_lines_file:
         allowed_lines = [int(line.strip()) for line in allowed_lines_file.readlines()]
+
+    # exports them
     with Path.open(input_file_path) as input_file, Path.open(
         output_file_path, "w"
     ) as output_file:

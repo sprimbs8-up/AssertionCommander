@@ -10,6 +10,8 @@ from tqdm import tqdm
 
 @dataclasses.dataclass
 class VariantComparator:
+    """Data class for comparing different variants."""
+
     def __init__(
         self,
         total: int,
@@ -23,6 +25,12 @@ class VariantComparator:
         self.correct_in_abstract = correct_in_abstract
 
     def to_dict(self) -> dict[str, int]:
+        """
+        Convert VariantComparator attributes to a dictionary.
+
+        Returns:
+            dict[str, int]: Dictionary containing attributes.
+        """
         return {
             "total": self.total,
             "correct_in_both": self.correct_in_both,
@@ -34,6 +42,14 @@ class VariantComparator:
 def compare_files(
     raw_file_path: Path, abstract_file_path: Path, output_file_path: Path
 ) -> None:
+    """
+    Compare raw and abstract files and write comparison results to an output file.
+
+    Args:
+        raw_file_path (Path): Path to the raw file.
+        abstract_file_path (Path): Path to the abstract file.
+        output_file_path (Path): Path to the output file.
+    """
     output_file_path.parent.mkdir(parents=True, exist_ok=True)
     with Path.open(raw_file_path) as raw_file, Path.open(
         abstract_file_path
@@ -62,11 +78,11 @@ def compare_files(
                 both_correct += 1
             elif expected in raw_predictions_list:
                 correct_in_raw_variant += 1
-                with Path.open("raw.txt", "a") as raw_file2:
+                with Path.open(Path("raw.txt"), "a") as raw_file2:
                     raw_file2.write(str(total) + "#" + "#".join(raw_data) + "\n")
             elif expected in abstract_predictions_list:
                 correct_in_abstract_variant += 1
-                with Path.open("abstract.txt", "a") as abstract_file_2:
+                with Path.open(Path("abstract.txt"), "a") as abstract_file_2:
                     abstract_file_2.write(
                         str(total) + "#" + "#".join(abstract_data) + "\n"
                     )
@@ -95,6 +111,15 @@ def compare_files(
 
 
 def _clean(assertion: str) -> str:
+    """
+    Clean assertion string.
+
+    Args:
+        assertion (str): Assertion string.
+
+    Returns:
+        str: Cleaned assertion string.
+    """
     return (
         assertion.replace(" ", "")
         .replace("\n", "")
@@ -105,6 +130,9 @@ def _clean(assertion: str) -> str:
 
 
 def main() -> None:
+    """
+    Parses args and computes raw and abstract comparison stats.
+    """
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s|%(name)s|%(levelname)s|%(message)s"
     )
