@@ -4,7 +4,7 @@ import json
 from collections.abc import Iterable
 from itertools import islice
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
 from tqdm import tqdm
 
@@ -375,6 +375,9 @@ class AsserT5DataLoader(DataLoader):
         return labels, references, dicts
 
 
+T = TypeVar("T")
+
+
 class CachedPredictionsDataLoader(DataLoader):
     def __init__(
         self,
@@ -412,7 +415,21 @@ class CachedPredictionsDataLoader(DataLoader):
         )
 
     def _split(self, tuple_predictions: tuple) -> tuple[list, list]:
-        ref_pred_list = list(tuple_predictions)
+        def represents_int(s: str) -> bool:
+            try:
+                int(s)
+            except ValueError:
+                return False
+            else:
+                return True
+
+        def remove_index_column(xs: list[T]) -> list[T]:
+            # the first column is an identifier, ignore it
+            if represents_int(xs[0]):
+                return xs[1:]
+            return xs
+
+        ref_pred_list = [remove_index_column(row) for row in tuple_predictions]
         references = [ref[0] for ref in ref_pred_list]
         predictions = [pred[1 : self.top_k + 1] for pred in ref_pred_list]
         return references, predictions
