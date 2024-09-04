@@ -4,6 +4,7 @@ import logging
 import math
 import os
 import subprocess
+from pathlib import Path
 
 import numpy as np
 from bidict import bidict
@@ -264,6 +265,14 @@ class AssertionTypeMetricComputer(MetricComputer):
         }
 
 
+def _java_cmd() -> str:
+    java_dir = os.getenv("JAVA_HOME")
+    if java_dir is None:
+        return "java"
+
+    return str(Path(java_dir, "bin", "java"))
+
+
 class SyntacticCorrectnessMetricComputer(MetricComputer):
     """
     Class for computing metrics related to syntactic correctness.
@@ -274,6 +283,7 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
         self.syntactic_correct: int = 0
         self.failure_batches: int = 0
         self.total: int = 0
+        self._java_cmd = _java_cmd()
 
     def compute_metrics(self) -> dict[str, float]:
         syntactic_correct = (
@@ -303,10 +313,8 @@ class SyntacticCorrectnessMetricComputer(MetricComputer):
         flatten_prediction_batch = []
         for top_k_pred in top_k_predictions_batch:
             flatten_prediction_batch.extend(top_k_pred)
-        java_cmd = os.getenv("JAVA_HOME")
-        java_cmd = java_cmd if java_cmd is not None else "java"
         cmd = [
-            java_cmd,
+            self._java_cmd,
             "-jar",
             "libs/assertions.jar",
             "check",
