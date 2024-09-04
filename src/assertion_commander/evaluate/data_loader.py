@@ -8,8 +8,8 @@ from typing import Any
 
 from tqdm import tqdm
 
-from src.evaluate.dataset_type import DatasetType
-from src.evaluate.models import Models
+from assertion_commander.evaluate.dataset_type import DatasetType
+from assertion_commander.evaluate.models import Models
 
 
 class DataLoader(abc.ABC):

@@ -4,21 +4,25 @@ version = "0.1.0"
 description = ""
 authors = ["Severin Primbs"]
 readme = "README.md"
-packages = [{ include = "src" }]
+packages = [
+    { include = "assertion_commander", from = "src" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"
+bidict = "^0.23.1"
 evaluate = "^0.4.1"
-scikit-learn = "^1.3.2"
-black = "^23.12.1"
-urllib3 = "^1.26.12"
 nltk = "^3.8.1"
+scikit-learn = "^1.3.2"
+torch = "^2.2.0"
 tqdm = "^4.66.1"
+transformers = "^4.37.2"
+urllib3 = "^1.26.12"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.12.1"
 isort = { version = "~5.13.0", extras = ["pyproject"] }
 ruff = "~0.1.0"
-transformers = "^4.37.2"
-torch = "^2.2.0"
-bidict = "^0.23.1"
 
 [build-system]
 requires = ["poetry-core"]
@@ -70,9 +74,11 @@ exclude = [
     ".pytest_cache",
 ]
 target-version = "py310"
+
+
 [tool.poetry.scripts]
-evaluate = "src.evaluate.main:run"
-filter-gpt = "src.filtering.gpt_filter:main"
-filter-predictions = "src.filtering.filter_predictions:main"
-compare-models = "src.compare_models.compare:main"
-evaluate-abstract = "src.compare_models.abstract_evaluation:main"
+evaluate = "assertion_commander.evaluate.main:run"
+filter-gpt = "assertion_commander.filtering.gpt_filter:main"
+filter-predictions = "assertion_commander.filtering.filter_predictions:main"
+compare-models = "assertion_commander.compare_models.compare:main"
+evaluate-abstract = "assertion_commander.compare_models.abstract_evaluation:main"

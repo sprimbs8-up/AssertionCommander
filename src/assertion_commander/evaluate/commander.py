@@ -2,11 +2,11 @@ import logging
 
 import requests
 
-from src.evaluate.data_loader import build_data_loader
-from src.evaluate.dataset_type import DatasetType
-from src.evaluate.export import CombinedExporter
-from src.evaluate.metrics import CombinedMetricComputer, MetricComputer
-from src.evaluate.models import Models, parse_model
+from assertion_commander.evaluate.data_loader import build_data_loader
+from assertion_commander.evaluate.dataset_type import DatasetType
+from assertion_commander.evaluate.export import CombinedExporter
+from assertion_commander.evaluate.metrics import CombinedMetricComputer, MetricComputer
+from assertion_commander.evaluate.models import Models, parse_model
 
 
 def _build_prediction(input_strings: list[str], top_k: int) -> dict[str, float]:

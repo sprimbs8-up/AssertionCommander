@@ -3,7 +3,7 @@ import csv
 from io import StringIO
 from pathlib import Path
 
-from src.evaluate.main import ASSERTION_TYPES
+from assertion_commander.evaluate.main import ASSERTION_TYPES
 
 
 def filter_row_if_no_valid_junit_assertion(input_file: Path, output_file: Path) -> None:

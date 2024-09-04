@@ -4,8 +4,8 @@ import sys
 
 from tqdm.contrib.logging import logging_redirect_tqdm
 
-from src.evaluate.commander import AssertionCommander
-from src.evaluate.dataset_type import parse_type
+from assertion_commander.evaluate.commander import AssertionCommander
+from assertion_commander.evaluate.dataset_type import parse_type
 
 ASSERTION_TYPES = {
     "assertEquals",
