@@ -120,3 +120,8 @@ poetry run gpt-filter -i INPUT_FILE -o OUTPUT_FILE
 
 - `-i, --input_file`: Specifies the path to the input CSV file.
 - `-o, --output_file`: Specifies the path to the output CSV file.
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](https://github.com/apache/.github/blob/main/LICENSE) file for details.
+
